@@ -55,19 +55,19 @@ fun SpeedGauge(
 
                 Text(
                     text = speedDisplay,
-                    fontSize = 58.sp,
+                    fontSize = 68.sp,
                     fontWeight = FontWeight.Black,
                     fontFamily = FontFamily.Monospace,
                     color = speedColor,
-                    lineHeight = 60.sp
+                    lineHeight = 70.sp
                 )
 
                 Text(
                     text = "KM/H",
-                    fontSize = 14.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextSecondary,
-                    modifier = Modifier.padding(start = 6.dp, bottom = 6.dp)
+                    modifier = Modifier.padding(start = 6.dp, bottom = 8.dp)
                 )
             }
 

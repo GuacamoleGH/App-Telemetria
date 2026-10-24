@@ -212,8 +212,8 @@ fun DashboardScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .statusBarsPadding()
-                .padding(horizontal = 14.dp, vertical = 2.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+                .padding(horizontal = 14.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Header: Status indicators + Controles
             Row(
@@ -290,7 +290,8 @@ fun DashboardScreen(
             // Velocímetro Central
             SpeedGauge(
                 speedKmh = liveState.currentSpeedKmh,
-                isGpsValid = liveState.gpsFix
+                isGpsValid = liveState.gpsFix,
+                modifier = Modifier.weight(1.35f)
             )
 
             // G-Meter Dinámico
@@ -298,7 +299,8 @@ fun DashboardScreen(
                 lateralG = liveState.lateralG,
                 longitudinalG = liveState.longitudinalG,
                 gpsDerivedLongG = liveState.gpsDerivedLongitudinalG,
-                isCalibrated = liveState.isSensorCalibrated
+                isCalibrated = liveState.isSensorCalibrated,
+                modifier = Modifier.weight(1.0f)
             )
 
             // Fila de 4 Métricas en una sola línea (Distancia, Tiempo, Vel. Máxima, Vel. Media)
