@@ -25,7 +25,6 @@ import com.telemetria.app.ui.theme.CockpitBorder
 import com.telemetria.app.ui.theme.CockpitCardBg
 import com.telemetria.app.ui.theme.NeonGreen
 import com.telemetria.app.ui.theme.TextMuted
-import com.telemetria.app.ui.theme.TextPrimary
 import com.telemetria.app.ui.theme.TextSecondary
 
 @Composable
@@ -37,9 +36,9 @@ fun SpeedGauge(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(CockpitCardBg, RoundedCornerShape(14.dp))
-            .border(1.dp, CockpitBorder, RoundedCornerShape(14.dp))
-            .padding(vertical = 6.dp, horizontal = 14.dp),
+            .background(CockpitCardBg, RoundedCornerShape(16.dp))
+            .border(1.dp, CockpitBorder, RoundedCornerShape(16.dp))
+            .padding(vertical = 14.dp, horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -55,19 +54,19 @@ fun SpeedGauge(
 
                 Text(
                     text = speedDisplay,
-                    fontSize = 68.sp,
+                    fontSize = 76.sp,
                     fontWeight = FontWeight.Black,
                     fontFamily = FontFamily.Monospace,
                     color = speedColor,
-                    lineHeight = 70.sp
+                    lineHeight = 78.sp
                 )
 
                 Text(
                     text = "KM/H",
-                    fontSize = 15.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextSecondary,
-                    modifier = Modifier.padding(start = 6.dp, bottom = 8.dp)
+                    modifier = Modifier.padding(start = 6.dp, bottom = 10.dp)
                 )
             }
 
@@ -82,4 +81,3 @@ fun SpeedGauge(
         }
     }
 }
-

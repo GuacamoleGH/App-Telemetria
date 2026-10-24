@@ -213,7 +213,7 @@ fun DashboardScreen(
                 .padding(innerPadding)
                 .statusBarsPadding()
                 .padding(horizontal = 14.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
             // Header: Status indicators + Controles
             Row(
@@ -290,8 +290,7 @@ fun DashboardScreen(
             // Velocímetro Central
             SpeedGauge(
                 speedKmh = liveState.currentSpeedKmh,
-                isGpsValid = liveState.gpsFix,
-                modifier = Modifier.weight(1.35f)
+                isGpsValid = liveState.gpsFix
             )
 
             // G-Meter Dinámico
@@ -299,44 +298,87 @@ fun DashboardScreen(
                 lateralG = liveState.lateralG,
                 longitudinalG = liveState.longitudinalG,
                 gpsDerivedLongG = liveState.gpsDerivedLongitudinalG,
-                isCalibrated = liveState.isSensorCalibrated,
-                modifier = Modifier.weight(1.0f)
+                isCalibrated = liveState.isSensorCalibrated
             )
 
-            // Fila de 4 Métricas en una sola línea (Distancia, Tiempo, Vel. Máxima, Vel. Media)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                MetricCard(
-                    title = "Distancia",
-                    value = FormatUtils.formatDistanceKm(liveState.distanceMeters),
-                    accentColor = NeonCyan,
-                    modifier = Modifier.weight(1f)
-                )
+            // Métricas: adaptativas según si la cámara está encendida o apagada
+            if (isVideoEnabled) {
+                // Modo Cámara: 4 métricas en 1 sola fila para que todo quepa al 100% sin scroll
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    MetricCard(
+                        title = "Distancia",
+                        value = FormatUtils.formatDistanceKm(liveState.distanceMeters),
+                        accentColor = NeonCyan,
+                        modifier = Modifier.weight(1f)
+                    )
 
-                MetricCard(
-                    title = "Tiempo",
-                    value = FormatUtils.formatDuration(liveState.elapsedSeconds),
-                    accentColor = NeonGreen,
-                    modifier = Modifier.weight(1f)
-                )
+                    MetricCard(
+                        title = "Tiempo",
+                        value = FormatUtils.formatDuration(liveState.elapsedSeconds),
+                        accentColor = NeonGreen,
+                        modifier = Modifier.weight(1f)
+                    )
 
-                MetricCard(
-                    title = "Vel. Máx",
-                    value = FormatUtils.formatSpeed(liveState.maxSpeedKmh),
-                    unit = "km/h",
-                    accentColor = NeonRed,
-                    modifier = Modifier.weight(1f)
-                )
+                    MetricCard(
+                        title = "Vel. Máx",
+                        value = FormatUtils.formatSpeed(liveState.maxSpeedKmh),
+                        unit = "km/h",
+                        accentColor = NeonRed,
+                        modifier = Modifier.weight(1f)
+                    )
 
-                MetricCard(
-                    title = "Vel. Med",
-                    value = FormatUtils.formatSpeed(liveState.avgSpeedKmh),
-                    unit = "km/h",
-                    accentColor = NeonAmber,
-                    modifier = Modifier.weight(1f)
-                )
+                    MetricCard(
+                        title = "Vel. Med",
+                        value = FormatUtils.formatSpeed(liveState.avgSpeedKmh),
+                        unit = "km/h",
+                        accentColor = NeonAmber,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            } else {
+                // Modo Cockpit puro (cámara apagada): 2 filas que llenan toda la pantalla con números grandes
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    MetricCard(
+                        title = "Distancia",
+                        value = FormatUtils.formatDistanceKm(liveState.distanceMeters),
+                        accentColor = NeonCyan,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    MetricCard(
+                        title = "Tiempo",
+                        value = FormatUtils.formatDuration(liveState.elapsedSeconds),
+                        accentColor = NeonGreen,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    MetricCard(
+                        title = "Vel. Máxima",
+                        value = FormatUtils.formatSpeed(liveState.maxSpeedKmh),
+                        unit = "km/h",
+                        accentColor = NeonRed,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    MetricCard(
+                        title = "Vel. Media",
+                        value = FormatUtils.formatSpeed(liveState.avgSpeedKmh),
+                        unit = "km/h",
+                        accentColor = NeonAmber,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
 
             // Grid de Métricas de Motor OBD (si hay conexión con la ECU)
