@@ -192,8 +192,8 @@ private fun DashboardPortraitContent(
         )
 
         // Pesos dinámicos: cuando la cámara está apagada, los bloques se expanden para ocupar todo el espacio inferior
-        val speedGaugeWeight = if (isVideoEnabled) 1.05f else 1.35f
-        val gMeterWeight = if (isVideoEnabled) 0.95f else 1.25f
+        val speedGaugeWeight = if (isVideoEnabled) 0.88f else 1.10f
+        val gMeterWeight = if (isVideoEnabled) 1.35f else 1.65f
         val metricRowWeight = if (isVideoEnabled) 0.65f else 0.75f
 
         // Visor de Cámara CameraX: cuando está activa toma su proporción y los demás bloques se adaptan
@@ -403,7 +403,7 @@ private fun DashboardLandscapeContent(
             // Columna 2 (Centro): Cámara (si está activa) + G-Meter (círculo de tracción Kamm)
             Column(
                 modifier = Modifier
-                    .weight(1.02f)
+                    .weight(1.10f)
                     .fillMaxHeight(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -414,7 +414,7 @@ private fun DashboardLandscapeContent(
                         videoDurationSec = liveState.videoDurationSec,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(115.dp)
+                            .height(92.dp)
                     )
                 }
 

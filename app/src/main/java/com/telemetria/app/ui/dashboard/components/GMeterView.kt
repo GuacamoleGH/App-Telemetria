@@ -49,7 +49,7 @@ fun GMeterView(
             .fillMaxWidth()
             .background(CockpitCardBg, RoundedCornerShape(14.dp))
             .border(1.dp, CockpitBorder, RoundedCornerShape(14.dp))
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 10.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -78,12 +78,11 @@ fun GMeterView(
                 )
             }
 
-            // Diagrama circular de Kamm adaptativo al espacio disponible
+            // Diagrama circular de Kamm adaptativo al espacio disponible (máximo tamaño posible)
             BoxWithConstraints(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
+                    .fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
                 val diameter = minOf(maxWidth, maxHeight).coerceAtLeast(20.dp)
@@ -92,18 +91,18 @@ fun GMeterView(
                     modifier = Modifier.size(diameter)
                 ) {
                     val center = Offset(size.width / 2f, size.height / 2f)
-                    val maxRadius = (size.width / 2f - 4.dp.toPx()).coerceAtLeast(4f)
+                    val maxRadius = (size.width / 2f - 2.dp.toPx()).coerceAtLeast(4f)
 
                     val r05 = maxRadius * (0.5f / maxScaleG)
                     val r10 = maxRadius * (1.0f / maxScaleG)
                     val r15 = maxRadius
 
-                    drawCircle(color = Color(0xFF1E2833), radius = r05, center = center, style = Stroke(width = 1.dp.toPx()))
-                    drawCircle(color = Color(0xFF263238), radius = r10, center = center, style = Stroke(width = 1.5.dp.toPx()))
-                    drawCircle(color = Color(0xFF37474F), radius = r15, center = center, style = Stroke(width = 2.dp.toPx()))
+                    drawCircle(color = Color(0xFF222F3E), radius = r05, center = center, style = Stroke(width = 1.dp.toPx()))
+                    drawCircle(color = Color(0xFF2C3E50), radius = r10, center = center, style = Stroke(width = 1.5.dp.toPx()))
+                    drawCircle(color = Color(0xFF455A64), radius = r15, center = center, style = Stroke(width = 2.dp.toPx()))
 
-                    drawLine(color = Color(0xFF263238), start = Offset(center.x, center.y - maxRadius), end = Offset(center.x, center.y + maxRadius), strokeWidth = 1.dp.toPx())
-                    drawLine(color = Color(0xFF263238), start = Offset(center.x - maxRadius, center.y), end = Offset(center.x + maxRadius, center.y), strokeWidth = 1.dp.toPx())
+                    drawLine(color = Color(0xFF37474F), start = Offset(center.x, center.y - maxRadius), end = Offset(center.x, center.y + maxRadius), strokeWidth = 1.dp.toPx())
+                    drawLine(color = Color(0xFF37474F), start = Offset(center.x - maxRadius, center.y), end = Offset(center.x + maxRadius, center.y), strokeWidth = 1.dp.toPx())
 
                     val clampedLat = (lateralG / maxScaleG).coerceIn(-1f, 1f)
                     val clampedLong = (longitudinalG / maxScaleG).coerceIn(-1f, 1f)
@@ -111,8 +110,8 @@ fun GMeterView(
                     val dotX = center.x + clampedLat * maxRadius
                     val dotY = center.y - clampedLong * maxRadius
 
-                    val dotRadius = (diameter.toPx() * 0.05f).coerceIn(3.dp.toPx(), 7.dp.toPx())
-                    val haloRadius = dotRadius * 2f
+                    val dotRadius = (diameter.toPx() * 0.055f).coerceIn(4.5.dp.toPx(), 8.dp.toPx())
+                    val haloRadius = dotRadius * 2.2f
 
                     drawCircle(color = NeonCyan.copy(alpha = 0.35f), radius = haloRadius, center = Offset(dotX, dotY))
                     drawCircle(color = NeonCyan, radius = dotRadius, center = Offset(dotX, dotY))
