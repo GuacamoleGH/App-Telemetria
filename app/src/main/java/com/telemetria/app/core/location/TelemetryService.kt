@@ -127,7 +127,7 @@ class TelemetryService : Service() {
                 val distStr = FormatUtils.formatDistanceKm(state.distanceMeters)
                 val timeStr = FormatUtils.formatDuration(state.elapsedSeconds)
                 val gStr = String.format(java.util.Locale.US, "%.2fG Lat", state.lateralG)
-                val content = "$speedStr km/h | $distStr | $gStr"
+                val content = "$speedStr km/h | $distStr | $timeStr | $gStr"
 
                 notificationManager.notify(NOTIFICATION_ID, buildNotification(title, content))
             }

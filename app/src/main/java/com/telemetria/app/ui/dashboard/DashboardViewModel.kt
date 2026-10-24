@@ -7,6 +7,9 @@ import androidx.lifecycle.viewModelScope
 import com.telemetria.app.core.database.TelemetryDatabase
 import com.telemetria.app.core.location.TelemetryService
 import com.telemetria.app.core.model.Session
+import com.telemetria.app.core.obd.ObdManager
+import com.telemetria.app.core.obd.model.ObdConnectionState
+import com.telemetria.app.core.obd.scanner.DiscoveredBleDevice
 import com.telemetria.app.core.session.SessionLiveState
 import com.telemetria.app.core.session.SessionManager
 import com.telemetria.app.core.video.CameraPermissionHelper
@@ -23,11 +26,44 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val db = TelemetryDatabase.getInstance(application)
     private val sessionManager = SessionManager.getInstance(db)
     val videoRecordingManager = VideoRecordingManager(application)
+    val obdManager = ObdManager.getInstance(application, sessionManager)
 
     val liveState: StateFlow<SessionLiveState> = sessionManager.liveState
 
     private val _isVideoEnabled = MutableStateFlow(true)
     val isVideoEnabled: StateFlow<Boolean> = _isVideoEnabled.asStateFlow()
+
+    private val _isObdDialogVisible = MutableStateFlow(false)
+    val isObdDialogVisible: StateFlow<Boolean> = _isObdDialogVisible.asStateFlow()
+
+    val obdConnectionState: StateFlow<ObdConnectionState> = obdManager.connectionState
+    val discoveredBleDevices: StateFlow<List<DiscoveredBleDevice>> = obdManager.discoveredDevices
+
+    fun showObdDialog() {
+        _isObdDialogVisible.value = true
+        obdManager.startBleScan()
+    }
+
+    fun dismissObdDialog() {
+        _isObdDialogVisible.value = false
+        obdManager.stopBleScan()
+    }
+
+    fun startObdScan() {
+        obdManager.startBleScan()
+    }
+
+    fun stopObdScan() {
+        obdManager.stopBleScan()
+    }
+
+    fun connectObd(address: String) {
+        obdManager.connectDevice(address)
+    }
+
+    fun disconnectObd() {
+        obdManager.disconnect()
+    }
 
     fun toggleVideoEnabled() {
         _isVideoEnabled.update { !it }
@@ -62,7 +98,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             onStatusUpdate = { durationSec, _ ->
                 sessionManager.updateVideoStatus(isRecording = true, durationSec = durationSec)
             },
-            onFinalized = { success, errorMsg ->
+            onFinalized = { _, _ ->
                 sessionManager.updateVideoStatus(isRecording = false, durationSec = 0)
             }
         )
@@ -102,5 +138,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     override fun onCleared() {
         super.onCleared()
         videoRecordingManager.release()
+        obdManager.disconnect()
     }
 }

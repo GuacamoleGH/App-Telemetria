@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -42,6 +43,7 @@ import com.telemetria.app.core.util.FormatUtils
 import com.telemetria.app.ui.dashboard.components.CameraPreviewView
 import com.telemetria.app.ui.dashboard.components.GMeterView
 import com.telemetria.app.ui.dashboard.components.MetricCard
+import com.telemetria.app.ui.dashboard.components.ObdConnectDialog
 import com.telemetria.app.ui.dashboard.components.RpmBar
 import com.telemetria.app.ui.dashboard.components.SpeedGauge
 import com.telemetria.app.ui.dashboard.components.StatusIndicatorRow
@@ -61,7 +63,23 @@ fun DashboardScreen(
 ) {
     val liveState by viewModel.liveState.collectAsState()
     val isVideoEnabled by viewModel.isVideoEnabled.collectAsState()
+    val isObdDialogVisible by viewModel.isObdDialogVisible.collectAsState()
+    val obdConnectionState by viewModel.obdConnectionState.collectAsState()
+    val discoveredBleDevices by viewModel.discoveredBleDevices.collectAsState()
     val scrollState = rememberScrollState()
+
+    // Diálogo de conexión OBD-II BLE
+    if (isObdDialogVisible) {
+        ObdConnectDialog(
+            connectionState = obdConnectionState,
+            discoveredDevices = discoveredBleDevices,
+            onStartScan = { viewModel.startObdScan() },
+            onStopScan = { viewModel.stopObdScan() },
+            onConnectDevice = { addr -> viewModel.connectObd(addr) },
+            onDisconnect = { viewModel.disconnectObd() },
+            onDismiss = { viewModel.dismissObdDialog() }
+        )
+    }
 
     Box(
         modifier = Modifier
@@ -75,7 +93,7 @@ fun DashboardScreen(
                 .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Header: Status indicators + Cámara Toggle + Calibración + Botón Historial
+            // Header: Status indicators + Controles
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -85,10 +103,21 @@ fun DashboardScreen(
                     gpsFix = liveState.gpsFix,
                     gpsAccuracyMeters = liveState.gpsAccuracyMeters,
                     sampleRateHz = liveState.sampleRateHz,
-                    obdConnected = false
+                    obdConnected = liveState.isObdConnected,
+                    obdHz = liveState.obdRealHz,
+                    onObdClick = { viewModel.showObdDialog() }
                 )
 
                 Row {
+                    // Botón OBD Bluetooth
+                    IconButton(onClick = { viewModel.showObdDialog() }) {
+                        Icon(
+                            imageVector = Icons.Default.Bluetooth,
+                            contentDescription = "Conectar Veepeak OBD-II",
+                            tint = if (liveState.isObdConnected) NeonCyan else TextMuted
+                        )
+                    }
+
                     // Toggle Vídeo CameraX
                     IconButton(onClick = { viewModel.toggleVideoEnabled() }) {
                         Icon(
@@ -121,7 +150,7 @@ fun DashboardScreen(
                 }
             }
 
-            // Visor de Cámara CameraX (Fase 4: PiP / Vista previa con indicación de grabación)
+            // Visor de Cámara CameraX
             AnimatedVisibility(visible = isVideoEnabled) {
                 CameraPreviewView(
                     videoRecordingManager = viewModel.videoRecordingManager,
@@ -133,8 +162,8 @@ fun DashboardScreen(
                 )
             }
 
-            // Tacómetro estilo MyChron 5
-            RpmBar(rpm = null)
+            // Tacómetro estilo MyChron 5 (conectado a RPM reales de OBD)
+            RpmBar(rpm = liveState.engineRpm)
 
             // Velocímetro Central
             SpeedGauge(
@@ -150,7 +179,7 @@ fun DashboardScreen(
                 isCalibrated = liveState.isSensorCalibrated
             )
 
-            // Grid de Métricas
+            // Grid de Métricas Primarias
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -189,6 +218,28 @@ fun DashboardScreen(
                     accentColor = NeonAmber,
                     modifier = Modifier.weight(1f)
                 )
+            }
+
+            // Grid de Métricas de Motor OBD (si hay conexión con la ECU)
+            if (liveState.isObdConnected) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    MetricCard(
+                        title = "Refrigerante",
+                        value = liveState.coolantTempC?.let { "$it°C" } ?: "--",
+                        accentColor = if ((liveState.coolantTempC ?: 0) > 105) NeonRed else NeonCyan,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    MetricCard(
+                        title = "Pedal Acel.",
+                        value = liveState.throttlePercent?.let { "${it.toInt()}%" } ?: "--",
+                        accentColor = NeonGreen,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(6.dp))

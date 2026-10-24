@@ -2,6 +2,7 @@ package com.telemetria.app.ui.dashboard.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -33,6 +34,8 @@ fun StatusIndicatorRow(
     gpsAccuracyMeters: Float?,
     sampleRateHz: Float,
     obdConnected: Boolean,
+    obdHz: Float = 0f,
+    onObdClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -59,11 +62,18 @@ fun StatusIndicatorRow(
             )
         }
 
-        // OBD Status
+        // OBD Status badge (clickeable para conectar / configurar)
+        val obdLabel = when {
+            obdConnected && obdHz > 0f -> "OBD ${String.format(Locale.US, "%.1f", obdHz)} Hz"
+            obdConnected -> "OBD BLE OK"
+            else -> "CONECTAR OBD"
+        }
+
         StatusBadge(
-            label = if (obdConnected) "OBD BLE" else "NO OBD",
+            label = obdLabel,
             activeColor = if (obdConnected) NeonCyan else TextMuted,
-            isActive = obdConnected
+            isActive = obdConnected,
+            onClick = onObdClick
         )
     }
 }
@@ -73,12 +83,15 @@ fun StatusBadge(
     label: String,
     activeColor: Color,
     isActive: Boolean,
+    onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val clickModifier = if (onClick != null) modifier.clickable(onClick = onClick) else modifier
+
     Box(
-        modifier = modifier
+        modifier = clickModifier
             .background(CockpitCardBg, RoundedCornerShape(8.dp))
-            .border(1.dp, CockpitBorder, RoundedCornerShape(8.dp))
+            .border(1.dp, if (isActive) activeColor.copy(alpha = 0.5f) else CockpitBorder, RoundedCornerShape(8.dp))
             .padding(horizontal = 8.dp, vertical = 4.dp)
     ) {
         Row(
@@ -99,4 +112,3 @@ fun StatusBadge(
         }
     }
 }
-

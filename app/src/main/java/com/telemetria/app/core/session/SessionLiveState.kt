@@ -33,5 +33,15 @@ data class SessionLiveState(
     val videoDurationSec: Long = 0L,
     val videoFilePath: String? = null,
     val videoStartMonotonicNanos: Long? = null,
-    val videoStartEpochMillis: Long? = null
+    val videoStartEpochMillis: Long? = null,
+
+    // OBD-II Veepeak BLE (Fase 6)
+    val isObdConnected: Boolean = false,
+    val engineRpm: Int? = null,
+    val obdSpeedKmh: Float? = null,
+    val throttlePercent: Float? = null,
+    val coolantTempC: Int? = null,
+    val engineLoadPercent: Float? = null,
+    val obdRealHz: Float = 0f,
+    val obdProtocolName: String? = null
 )

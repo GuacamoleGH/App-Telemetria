@@ -41,6 +41,9 @@ class SessionManager private constructor(
     private var currentLateralG: Float = 0f
     private var currentLongitudinalG: Float = 0f
 
+    // Últimos datos OBD-II (Fase 6)
+    private var latestObd: com.telemetria.app.core.obd.model.ObdData? = null
+
     // Ventana para reducción de tasa de persistencia inercial (ej. persistir a 10Hz en base de datos)
     private var lastInertialPersistMillis: Long = 0L
 
@@ -255,7 +258,12 @@ class SessionManager private constructor(
                 accelY = snapshot.linearAccelY,
                 accelZ = snapshot.linearAccelZ,
                 lateralG = currentLateralG,
-                longitudinalG = currentLongitudinalG
+                longitudinalG = currentLongitudinalG,
+                engineRpm = latestObd?.engineRpm,
+                obdSpeedKmh = latestObd?.obdSpeedKmh,
+                throttlePercent = latestObd?.throttlePercent,
+                coolantTempC = latestObd?.coolantTempC,
+                engineLoadPercent = latestObd?.engineLoadPercent
             )
             batchWriter?.enqueue(entity)
         }
@@ -267,6 +275,21 @@ class SessionManager private constructor(
                 maxLateralG = newMaxLat,
                 maxLongitudinalG = newMaxLong,
                 isSensorCalibrated = orientationCalibrator.isCalibrated
+            )
+        }
+    }
+
+    fun onObdReceived(data: com.telemetria.app.core.obd.model.ObdData) {
+        latestObd = data
+        _liveState.update {
+            it.copy(
+                isObdConnected = data.isConnected,
+                engineRpm = data.engineRpm,
+                obdSpeedKmh = data.obdSpeedKmh,
+                throttlePercent = data.throttlePercent,
+                coolantTempC = data.coolantTempC,
+                engineLoadPercent = data.engineLoadPercent,
+                obdRealHz = data.realHz
             )
         }
     }
@@ -342,7 +365,12 @@ class SessionManager private constructor(
                 accelY = imu?.linearAccelY,
                 accelZ = imu?.linearAccelZ,
                 lateralG = currentLateralG,
-                longitudinalG = currentLongitudinalG
+                longitudinalG = currentLongitudinalG,
+                engineRpm = latestObd?.engineRpm,
+                obdSpeedKmh = latestObd?.obdSpeedKmh,
+                throttlePercent = latestObd?.throttlePercent,
+                coolantTempC = latestObd?.coolantTempC,
+                engineLoadPercent = latestObd?.engineLoadPercent
             )
             batchWriter?.enqueue(entity)
 
