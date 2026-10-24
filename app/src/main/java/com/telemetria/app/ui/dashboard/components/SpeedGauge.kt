@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.telemetria.app.core.util.FormatUtils
@@ -31,14 +32,16 @@ import com.telemetria.app.ui.theme.TextSecondary
 fun SpeedGauge(
     speedKmh: Float,
     isGpsValid: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    speedFontSize: TextUnit = 68.sp,
+    unitFontSize: TextUnit = 16.sp
 ) {
     Box(
         modifier = modifier
             .fillMaxWidth()
             .background(CockpitCardBg, RoundedCornerShape(16.dp))
             .border(1.dp, CockpitBorder, RoundedCornerShape(16.dp))
-            .padding(vertical = 14.dp, horizontal = 16.dp),
+            .padding(vertical = 12.dp, horizontal = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -54,19 +57,23 @@ fun SpeedGauge(
 
                 Text(
                     text = speedDisplay,
-                    fontSize = 76.sp,
+                    fontSize = speedFontSize,
                     fontWeight = FontWeight.Black,
                     fontFamily = FontFamily.Monospace,
                     color = speedColor,
-                    lineHeight = 78.sp
+                    lineHeight = speedFontSize,
+                    maxLines = 1,
+                    softWrap = false
                 )
 
                 Text(
                     text = "KM/H",
-                    fontSize = 16.sp,
+                    fontSize = unitFontSize,
                     fontWeight = FontWeight.Bold,
                     color = TextSecondary,
-                    modifier = Modifier.padding(start = 6.dp, bottom = 10.dp)
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.padding(start = 5.dp, bottom = (unitFontSize.value * 0.45f).dp)
                 )
             }
 
@@ -76,7 +83,9 @@ fun SpeedGauge(
                 text = if (isGpsValid) "ORIGEN: GPS REAL" else "SIN SEÑAL GPS",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = if (isGpsValid) NeonGreen.copy(alpha = 0.8f) else Color(0xFFFF5252)
+                color = if (isGpsValid) NeonGreen.copy(alpha = 0.8f) else Color(0xFFFF5252),
+                maxLines = 1,
+                softWrap = false
             )
         }
     }

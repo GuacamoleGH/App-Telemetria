@@ -383,6 +383,8 @@ private fun DashboardLandscapeContent(
                 SpeedGauge(
                     speedKmh = liveState.currentSpeedKmh,
                     isGpsValid = liveState.gpsFix,
+                    speedFontSize = 50.sp,
+                    unitFontSize = 14.sp,
                     modifier = Modifier.weight(1f)
                 )
 
