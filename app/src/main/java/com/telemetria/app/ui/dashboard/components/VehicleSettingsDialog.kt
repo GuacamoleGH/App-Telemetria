@@ -69,18 +69,19 @@ fun VehicleSettingsDialog(
 ) {
     var maxRpm by remember { mutableIntStateOf(currentConfig.maxRpm) }
     var redlineRpm by remember { mutableIntStateOf(currentConfig.redlineRpm) }
-    var shiftLightRpm by remember { mutableIntStateOf(currentConfig.shiftLightRpm) }
+    // Aviso de cambio siempre fijado a 500 RPM antes de la línea roja
+    val shiftLightRpm = (redlineRpm - VehicleConfig.SHIFT_LIGHT_OFFSET_RPM).coerceAtLeast(1000)
 
     // Slider interactivo para previsualizar el tacómetro y las luces de cambio
     var previewRpm by remember { mutableFloatStateOf(shiftLightRpm.toFloat()) }
 
     val presets = remember {
         listOf(
-            VehiclePreset("Diésel (5.5k)", 5500, 4800, 4500),
-            VehiclePreset("Estándar (7.0k)", 7000, 6200, 6000),
-            VehiclePreset("Gasolina (8.0k)", 8000, 7200, 7000),
-            VehiclePreset("VTEC / GT (9.0k)", 9000, 8400, 8200),
-            VehiclePreset("Moto / Kart (11k)", 11000, 10000, 9700)
+            VehiclePreset("Diésel (5.5k)", 5500, 4800, 4300),
+            VehiclePreset("Estándar (7.0k)", 7000, 6200, 5700),
+            VehiclePreset("Gasolina (8.0k)", 8000, 7200, 6700),
+            VehiclePreset("VTEC / GT (9.0k)", 9000, 8400, 7900),
+            VehiclePreset("Moto / Kart (11k)", 11000, 10000, 9500)
         )
     }
 
@@ -162,7 +163,6 @@ fun VehicleSettingsDialog(
                             onClick = {
                                 maxRpm = preset.maxRpm
                                 redlineRpm = preset.redlineRpm
-                                shiftLightRpm = preset.shiftRpm
                                 previewRpm = preset.shiftRpm.toFloat()
                             },
                             label = { Text(preset.name, fontSize = 11.sp) },
@@ -193,7 +193,6 @@ fun VehicleSettingsDialog(
                         val rounded = (newVal / 250f).toInt() * 250
                         maxRpm = rounded
                         if (redlineRpm > maxRpm) redlineRpm = maxRpm
-                        if (shiftLightRpm > maxRpm) shiftLightRpm = maxRpm
                         if (previewRpm > maxRpm) previewRpm = maxRpm.toFloat()
                     },
                     valueRange = 4000f..12000f,
@@ -216,32 +215,43 @@ fun VehicleSettingsDialog(
                     onValueChange = { newVal ->
                         val rounded = (newVal / 100f).toInt() * 100
                         redlineRpm = rounded.coerceAtMost(maxRpm)
-                        if (shiftLightRpm > redlineRpm) shiftLightRpm = redlineRpm
                     },
                     valueRange = 3000f..maxRpm.toFloat(),
                     colors = SliderDefaults.colors(thumbColor = NeonRed, activeTrackColor = NeonRed),
                     modifier = Modifier.height(34.dp)
                 )
 
-                // 3. Aviso de Cambio (Shift Light)
+                // 3. Aviso de Cambio (Shift Light) - Siempre 500 RPM antes de la línea roja
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF141A22), RoundedCornerShape(8.dp))
+                        .border(1.dp, CockpitBorder.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("AVISO DE CAMBIO (SHIFT LIGHT)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                    Text("$shiftLightRpm RPM", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = NeonAmber)
+                    Column {
+                        Text(
+                            text = "AVISO DE CAMBIO (SHIFT LIGHT)",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = "Automático (500 RPM antes del corte)",
+                            fontSize = 9.sp,
+                            color = TextSecondary
+                        )
+                    }
+                    Text(
+                        text = "$shiftLightRpm RPM",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        color = NeonAmber
+                    )
                 }
-                Slider(
-                    value = shiftLightRpm.toFloat(),
-                    onValueChange = { newVal ->
-                        val rounded = (newVal / 100f).toInt() * 100
-                        shiftLightRpm = rounded.coerceAtMost(maxRpm)
-                    },
-                    valueRange = 2500f..maxRpm.toFloat(),
-                    colors = SliderDefaults.colors(thumbColor = NeonAmber, activeTrackColor = NeonAmber),
-                    modifier = Modifier.height(34.dp)
-                )
 
                 // Vista Previa Interactiva en tiempo real del Tacómetro
                 Row(

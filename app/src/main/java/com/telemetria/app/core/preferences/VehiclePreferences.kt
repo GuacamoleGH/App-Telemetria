@@ -20,7 +20,8 @@ class VehiclePreferences private constructor(context: Context) {
     private fun loadConfig(): VehicleConfig {
         val maxRpm = prefs.getInt(KEY_MAX_RPM, VehicleConfig.DEFAULT.maxRpm)
         val redlineRpm = prefs.getInt(KEY_REDLINE_RPM, VehicleConfig.DEFAULT.redlineRpm)
-        val shiftLightRpm = prefs.getInt(KEY_SHIFT_LIGHT_RPM, VehicleConfig.DEFAULT.shiftLightRpm)
+        // Aviso de cambio siempre a 500 RPM antes de la línea roja
+        val shiftLightRpm = (redlineRpm - VehicleConfig.SHIFT_LIGHT_OFFSET_RPM).coerceAtLeast(1000)
 
         return try {
             VehicleConfig(

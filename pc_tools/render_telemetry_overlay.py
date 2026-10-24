@@ -110,7 +110,7 @@ def draw_overlay(frame, tel_data, current_time_sec, vehicle_config=None):
     config = vehicle_config or {}
     max_rpm = config.get("max_rpm", 7500)
     redline_rpm = config.get("redline_rpm", 6500)
-    shift_light_rpm = config.get("shift_light_rpm", 6200)
+    shift_light_rpm = config.get("shift_light_rpm", max(1000, redline_rpm - 500))
 
     # 1. Tacómetro superior (luces de cambio y tacómetro estilo competición / MyChron 5)
     rpm = tel_data.get("rpm")
@@ -341,7 +341,7 @@ def main():
     vehicle_config = {
         "max_rpm": 7500,
         "redline_rpm": 6500,
-        "shift_light_rpm": 6200
+        "shift_light_rpm": 6000
     }
     if os.path.exists(json_file):
         try:

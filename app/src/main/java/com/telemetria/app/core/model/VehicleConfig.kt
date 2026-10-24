@@ -7,7 +7,7 @@ package com.telemetria.app.core.model
 data class VehicleConfig(
     val maxRpm: Int = 7500,
     val redlineRpm: Int = 6500,
-    val shiftLightRpm: Int = 6200
+    val shiftLightRpm: Int = (redlineRpm - 500).coerceAtLeast(1000)
 ) {
     init {
         require(maxRpm > 0) { "maxRpm debe ser mayor a 0" }
@@ -16,10 +16,12 @@ data class VehicleConfig(
     }
 
     companion object {
+        const val SHIFT_LIGHT_OFFSET_RPM = 500
+
         val DEFAULT = VehicleConfig(
             maxRpm = 7500,
             redlineRpm = 6500,
-            shiftLightRpm = 6200
+            shiftLightRpm = 6000
         )
     }
 }
