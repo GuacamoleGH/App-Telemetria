@@ -112,3 +112,4 @@ class InertialSensorManager(private val context: Context) {
         }
     }
 }
+

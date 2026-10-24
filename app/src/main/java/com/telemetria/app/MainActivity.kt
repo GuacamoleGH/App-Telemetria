@@ -33,11 +33,19 @@ class MainActivity : ComponentActivity() {
         // Mantener la pantalla encendida de forma segura durante la conducción
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // Comprobar y solicitar permisos de ubicación y notificación
+        // Comprobar y solicitar permisos de ubicación, notificación, cámara y audio
+        val missingPermissions = mutableListOf<String>()
         if (!LocationPermissionHelper.hasLocationPermissions(this) ||
             !LocationPermissionHelper.hasNotificationPermission(this)
         ) {
-            permissionLauncher.launch(LocationPermissionHelper.getRequiredPermissions())
+            missingPermissions.addAll(LocationPermissionHelper.getRequiredPermissions())
+        }
+        if (!com.telemetria.app.core.video.CameraPermissionHelper.hasAllVideoPermissions(this)) {
+            missingPermissions.addAll(com.telemetria.app.core.video.CameraPermissionHelper.getVideoRequiredPermissions())
+        }
+
+        if (missingPermissions.isNotEmpty()) {
+            permissionLauncher.launch(missingPermissions.distinct().toTypedArray())
         }
 
         // Sugerir exclusión de optimización de batería para evitar que el fabricante mate el GPS

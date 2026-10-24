@@ -19,7 +19,12 @@ data class SessionEntity(
     val avgSpeedKmh: Float = 0f,
     val durationSeconds: Long = 0,
     val pointCount: Long = 0,
-    val notes: String = ""
+    val notes: String = "",
+
+    // Vídeo y sincronización temporal (Fase 4)
+    val videoFilePath: String? = null,
+    val videoStartMonotonicNanos: Long? = null,
+    val videoStartEpochMillis: Long? = null
 ) {
     fun toDomain(): Session = Session(
         id = id,
@@ -37,7 +42,10 @@ data class SessionEntity(
         avgSpeedKmh = avgSpeedKmh,
         durationSeconds = durationSeconds,
         pointCount = pointCount,
-        notes = notes
+        notes = notes,
+        videoFilePath = videoFilePath,
+        videoStartMonotonicNanos = videoStartMonotonicNanos,
+        videoStartEpochMillis = videoStartEpochMillis
     )
 
     companion object {
@@ -53,8 +61,10 @@ data class SessionEntity(
             avgSpeedKmh = session.avgSpeedKmh,
             durationSeconds = session.durationSeconds,
             pointCount = session.pointCount,
-            notes = session.notes
+            notes = session.notes,
+            videoFilePath = session.videoFilePath,
+            videoStartMonotonicNanos = session.videoStartMonotonicNanos,
+            videoStartEpochMillis = session.videoStartEpochMillis
         )
     }
 }
-

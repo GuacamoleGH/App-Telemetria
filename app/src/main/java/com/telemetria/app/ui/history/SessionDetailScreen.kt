@@ -1,6 +1,7 @@
 package com.telemetria.app.ui.history
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,12 +46,16 @@ import com.telemetria.app.ui.history.components.GForceGraph
 import com.telemetria.app.ui.history.components.MapViewOsm
 import com.telemetria.app.ui.history.components.SpeedElevationGraph
 import com.telemetria.app.ui.theme.CockpitBlack
+import com.telemetria.app.ui.theme.CockpitBorder
+import com.telemetria.app.ui.theme.CockpitCardBg
 import com.telemetria.app.ui.theme.CockpitDarkSurface
 import com.telemetria.app.ui.theme.NeonAmber
 import com.telemetria.app.ui.theme.NeonCyan
 import com.telemetria.app.ui.theme.NeonGreen
 import com.telemetria.app.ui.theme.NeonRed
+import com.telemetria.app.ui.theme.TextMuted
 import com.telemetria.app.ui.theme.TextPrimary
+import com.telemetria.app.ui.theme.TextSecondary
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -177,6 +183,63 @@ fun SessionDetailScreen(
 
                 // Gráfica de Fuerzas G dinámicas (Fase 3: Lateral y Longitudinal)
                 GForceGraph(points = points)
+
+                // Tarjeta de Vídeo y Sincronización (Fase 4)
+                if (currentSession.videoFilePath != null) {
+                    val videoFile = java.io.File(currentSession.videoFilePath)
+                    val exists = videoFile.exists()
+                    val sizeMb = if (exists) videoFile.length() / (1024f * 1024f) else 0f
+                    val syncOffsetMs = if (currentSession.videoStartMonotonicNanos != null && currentSession.startMonotonicNanos > 0) {
+                        (currentSession.videoStartMonotonicNanos - currentSession.startMonotonicNanos) / 1_000_000L
+                    } else 0L
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(CockpitCardBg, RoundedCornerShape(12.dp))
+                            .border(1.dp, CockpitBorder, RoundedCornerShape(12.dp))
+                            .padding(14.dp)
+                    ) {
+                        Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "VÍDEO ASOCIADO (CAMERAX)",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TextSecondary
+                                )
+                                Text(
+                                    text = if (exists) String.format(java.util.Locale.US, "%.1f MB", sizeMb) else "NO ENCONTRADO",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = if (exists) NeonCyan else NeonRed
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Text(
+                                text = videoFile.name,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TextPrimary
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                text = "Sincronización monotónica: offset $syncOffsetMs ms respecto a muestra inicial",
+                                fontSize = 11.sp,
+                                color = TextMuted
+                            )
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(6.dp))
 

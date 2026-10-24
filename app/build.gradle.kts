@@ -88,6 +88,14 @@ dependencies {
     // Location (Fused Location Provider)
     implementation("com.google.android.gms:play-services-location:21.2.0")
 
+    // CameraX (Video Recording and Preview)
+    val cameraXVersion = "1.3.2"
+    implementation("androidx.camera:camera-core:$cameraXVersion")
+    implementation("androidx.camera:camera-camera2:$cameraXVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraXVersion")
+    implementation("androidx.camera:camera-video:$cameraXVersion")
+    implementation("androidx.camera:camera-view:$cameraXVersion")
+
     // Map: Osmdroid (100% offline-ready, no API keys)
     implementation("org.osmdroid:osmdroid-android:6.1.18")
 

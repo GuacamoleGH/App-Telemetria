@@ -68,3 +68,4 @@ class OrientationCalibratorTest {
         assertTrue("Lateral G magnitude should be around 0.5G", abs(gForces.lateralG) in 0.4f..0.6f)
     }
 }
+

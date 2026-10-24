@@ -71,6 +71,43 @@ class SessionManager private constructor(
         _liveState.update { it.copy(isCalibrating = true, isSensorCalibrated = false) }
     }
 
+    fun attachVideoRecording(filePath: String, startMonoNanos: Long, startEpochMillis: Long) {
+        val current = activeSession ?: return
+        val updated = current.copy(
+            videoFilePath = filePath,
+            videoStartMonotonicNanos = startMonoNanos,
+            videoStartEpochMillis = startEpochMillis
+        )
+        activeSession = updated
+
+        scope.launch(Dispatchers.IO) {
+            database.sessionDao().updateVideoInfo(
+                sessionId = current.id,
+                filePath = filePath,
+                startMonoNanos = startMonoNanos,
+                startEpochMillis = startEpochMillis
+            )
+        }
+
+        _liveState.update {
+            it.copy(
+                isVideoRecording = true,
+                videoFilePath = filePath,
+                videoStartMonotonicNanos = startMonoNanos,
+                videoStartEpochMillis = startEpochMillis
+            )
+        }
+    }
+
+    fun updateVideoStatus(isRecording: Boolean, durationSec: Long) {
+        _liveState.update {
+            it.copy(
+                isVideoRecording = isRecording,
+                videoDurationSec = durationSec
+            )
+        }
+    }
+
     suspend fun startNewSession(title: String = ""): Session {
         val nowMillis = System.currentTimeMillis()
         val monoNanos = SystemClock.elapsedRealtimeNanos()

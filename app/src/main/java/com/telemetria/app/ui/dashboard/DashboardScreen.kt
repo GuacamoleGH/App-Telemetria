@@ -1,5 +1,6 @@
 package com.telemetria.app.ui.dashboard
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,11 +21,12 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.VideocamOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -37,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.telemetria.app.core.model.SessionStatus
 import com.telemetria.app.core.util.FormatUtils
+import com.telemetria.app.ui.dashboard.components.CameraPreviewView
 import com.telemetria.app.ui.dashboard.components.GMeterView
 import com.telemetria.app.ui.dashboard.components.MetricCard
 import com.telemetria.app.ui.dashboard.components.RpmBar
@@ -47,6 +50,7 @@ import com.telemetria.app.ui.theme.NeonAmber
 import com.telemetria.app.ui.theme.NeonCyan
 import com.telemetria.app.ui.theme.NeonGreen
 import com.telemetria.app.ui.theme.NeonRed
+import com.telemetria.app.ui.theme.TextMuted
 import com.telemetria.app.ui.theme.TextPrimary
 
 @Composable
@@ -56,6 +60,7 @@ fun DashboardScreen(
     onSessionFinished: (String) -> Unit
 ) {
     val liveState by viewModel.liveState.collectAsState()
+    val isVideoEnabled by viewModel.isVideoEnabled.collectAsState()
     val scrollState = rememberScrollState()
 
     Box(
@@ -70,7 +75,7 @@ fun DashboardScreen(
                 .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Header: Status indicators + Calibración + Botón Historial
+            // Header: Status indicators + Cámara Toggle + Calibración + Botón Historial
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -84,6 +89,16 @@ fun DashboardScreen(
                 )
 
                 Row {
+                    // Toggle Vídeo CameraX
+                    IconButton(onClick = { viewModel.toggleVideoEnabled() }) {
+                        Icon(
+                            imageVector = if (isVideoEnabled) Icons.Default.Videocam else Icons.Default.VideocamOff,
+                            contentDescription = "Activar / Desactivar Grabación de Vídeo",
+                            tint = if (isVideoEnabled) NeonCyan else TextMuted
+                        )
+                    }
+
+                    // Calibración de orientación en soporte
                     IconButton(
                         onClick = { viewModel.onCalibrateSensorsClicked() },
                         enabled = !liveState.isCalibrating
@@ -95,6 +110,7 @@ fun DashboardScreen(
                         )
                     }
 
+                    // Historial
                     IconButton(onClick = onNavigateToHistory) {
                         Icon(
                             imageVector = Icons.Default.History,
@@ -103,6 +119,18 @@ fun DashboardScreen(
                         )
                     }
                 }
+            }
+
+            // Visor de Cámara CameraX (Fase 4: PiP / Vista previa con indicación de grabación)
+            AnimatedVisibility(visible = isVideoEnabled) {
+                CameraPreviewView(
+                    videoRecordingManager = viewModel.videoRecordingManager,
+                    isRecording = liveState.isVideoRecording,
+                    videoDurationSec = liveState.videoDurationSec,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                )
             }
 
             // Tacómetro estilo MyChron 5
@@ -114,7 +142,7 @@ fun DashboardScreen(
                 isGpsValid = liveState.gpsFix
             )
 
-            // G-Meter Dinámico (Fuerzas G Lateral / Longitudinal en tiempo real)
+            // G-Meter Dinámico
             GMeterView(
                 lateralG = liveState.lateralG,
                 longitudinalG = liveState.longitudinalG,
@@ -182,8 +210,8 @@ fun DashboardScreen(
                         Icon(Icons.Default.PlayArrow, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "INICIAR GRABACIÓN",
-                            fontSize = 16.sp,
+                            text = if (isVideoEnabled) "INICIAR VÍDEO + TELEMETRÍA" else "INICIAR TELEMETRÍA",
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }

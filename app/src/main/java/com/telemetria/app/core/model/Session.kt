@@ -12,6 +12,10 @@ data class Session(
     val avgSpeedKmh: Float = 0f,
     val durationSeconds: Long = 0,
     val pointCount: Long = 0,
-    val notes: String = ""
-)
+    val notes: String = "",
 
+    // Vídeo y sincronización temporal (Fase 4)
+    val videoFilePath: String? = null,
+    val videoStartMonotonicNanos: Long? = null,
+    val videoStartEpochMillis: Long? = null
+)

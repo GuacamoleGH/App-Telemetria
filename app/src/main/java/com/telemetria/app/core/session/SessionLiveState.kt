@@ -25,5 +25,13 @@ data class SessionLiveState(
     val maxLateralG: Float = 0f,
     val maxLongitudinalG: Float = 0f,
     val isSensorCalibrated: Boolean = false,
-    val isCalibrating: Boolean = false
+    val isCalibrating: Boolean = false,
+
+    // Vídeo & Sincronización (Fase 4)
+    val isVideoEnabled: Boolean = false,
+    val isVideoRecording: Boolean = false,
+    val videoDurationSec: Long = 0L,
+    val videoFilePath: String? = null,
+    val videoStartMonotonicNanos: Long? = null,
+    val videoStartEpochMillis: Long? = null
 )

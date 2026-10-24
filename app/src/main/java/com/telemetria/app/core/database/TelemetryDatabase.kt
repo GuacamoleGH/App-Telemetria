@@ -11,7 +11,7 @@ import com.telemetria.app.core.database.entity.TelemetryPointEntity
 
 @Database(
     entities = [SessionEntity::class, TelemetryPointEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class TelemetryDatabase : RoomDatabase() {

@@ -48,5 +48,19 @@ interface SessionDao {
         durationSec: Long,
         count: Long
     )
+
+    @Query("""
+        UPDATE sessions 
+        SET videoFilePath = :filePath,
+            videoStartMonotonicNanos = :startMonoNanos,
+            videoStartEpochMillis = :startEpochMillis
+        WHERE id = :sessionId
+    """)
+    suspend fun updateVideoInfo(
+        sessionId: String,
+        filePath: String,
+        startMonoNanos: Long,
+        startEpochMillis: Long
+    )
 }
 

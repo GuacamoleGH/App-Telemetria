@@ -7,3 +7,4 @@ data class CalibratedGForces(
     val gpsDerivedLongitudinalG: Float? = null,
     val isCalibrated: Boolean = false
 )
+

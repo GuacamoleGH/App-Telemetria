@@ -22,3 +22,4 @@ data class InertialSnapshot(
     // Vector de rotación (cuaternión x, y, z, w) si está disponible
     val rotationQuaternion: FloatArray? = null
 )
+
