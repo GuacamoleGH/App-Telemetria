@@ -43,6 +43,9 @@ class MainActivity : ComponentActivity() {
         if (!com.telemetria.app.core.video.CameraPermissionHelper.hasAllVideoPermissions(this)) {
             missingPermissions.addAll(com.telemetria.app.core.video.CameraPermissionHelper.getVideoRequiredPermissions())
         }
+        if (!com.telemetria.app.core.obd.BlePermissionHelper.hasBlePermissions(this)) {
+            missingPermissions.addAll(com.telemetria.app.core.obd.BlePermissionHelper.getRequiredBlePermissions())
+        }
 
         if (missingPermissions.isNotEmpty()) {
             permissionLauncher.launch(missingPermissions.distinct().toTypedArray())
