@@ -52,6 +52,7 @@ fun GMeterView(
         contentAlignment = Alignment.Center
     ) {
         Column(
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {

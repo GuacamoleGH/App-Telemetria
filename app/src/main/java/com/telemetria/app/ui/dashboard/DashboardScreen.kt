@@ -172,10 +172,15 @@ private fun DashboardPortraitContent(
             onNavigateToHistory = onNavigateToHistory
         )
 
-        // Visor de Cámara CameraX: cuando está activa se expande (weight 1f) para absorber el espacio vertical y eliminar el hueco inferior
+        // Pesos dinámicos: cuando la cámara está apagada, los bloques se expanden para ocupar todo el espacio inferior
+        val speedGaugeWeight = if (isVideoEnabled) 1.05f else 1.35f
+        val gMeterWeight = if (isVideoEnabled) 0.95f else 1.25f
+        val metricRowWeight = if (isVideoEnabled) 0.65f else 0.75f
+
+        // Visor de Cámara CameraX: cuando está activa toma su proporción y los demás bloques se adaptan
         AnimatedVisibility(
             visible = isVideoEnabled,
-            modifier = if (isVideoEnabled) Modifier.weight(1f) else Modifier
+            modifier = if (isVideoEnabled) Modifier.weight(1.15f) else Modifier
         ) {
             CameraPreviewView(
                 videoRecordingManager = viewModel.videoRecordingManager,
@@ -190,43 +195,53 @@ private fun DashboardPortraitContent(
         // Tacómetro estilo MyChron 5
         RpmBar(rpm = liveState.engineRpm)
 
-        // Velocímetro Central
+        // Velocímetro Central (se expande cuando la cámara está desactivada)
         SpeedGauge(
             speedKmh = liveState.currentSpeedKmh,
-            isGpsValid = liveState.gpsFix
+            isGpsValid = liveState.gpsFix,
+            modifier = Modifier.weight(speedGaugeWeight)
         )
 
-        // G-Meter Dinámico
+        // G-Meter Dinámico (se expande cuando la cámara está desactivada)
         GMeterView(
             lateralG = liveState.lateralG,
             longitudinalG = liveState.longitudinalG,
             gpsDerivedLongG = liveState.gpsDerivedLongitudinalG,
-            isCalibrated = liveState.isSensorCalibrated
+            isCalibrated = liveState.isSensorCalibrated,
+            modifier = Modifier.weight(gMeterWeight)
         )
 
         // Fila 1 de Métricas: Distancia y Tiempo
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(metricRowWeight),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             MetricCard(
                 title = "Distancia",
                 value = FormatUtils.formatDistanceKm(liveState.distanceMeters),
                 accentColor = NeonCyan,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
             )
 
             MetricCard(
                 title = "Tiempo",
                 value = FormatUtils.formatDuration(liveState.elapsedSeconds),
                 accentColor = NeonGreen,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
             )
         }
 
         // Fila 2 de Métricas: Vel. Máxima y Vel. Media
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(metricRowWeight),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             MetricCard(
@@ -234,7 +249,9 @@ private fun DashboardPortraitContent(
                 value = FormatUtils.formatSpeed(liveState.maxSpeedKmh),
                 unit = "km/h",
                 accentColor = NeonRed,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
             )
 
             MetricCard(
@@ -242,28 +259,36 @@ private fun DashboardPortraitContent(
                 value = FormatUtils.formatSpeed(liveState.avgSpeedKmh),
                 unit = "km/h",
                 accentColor = NeonAmber,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
             )
         }
 
         // Grid de Métricas de Motor OBD
         if (liveState.isObdConnected) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(if (isVideoEnabled) 0.55f else 0.7f),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 MetricCard(
                     title = "Refrigerante",
                     value = liveState.coolantTempC?.let { "$it°C" } ?: "--",
                     accentColor = if ((liveState.coolantTempC ?: 0) > 105) NeonRed else NeonCyan,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
                 )
 
                 MetricCard(
                     title = "Pedal Acel.",
                     value = liveState.throttlePercent?.let { "${it.toInt()}%" } ?: "--",
                     accentColor = NeonGreen,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
                 )
             }
         }

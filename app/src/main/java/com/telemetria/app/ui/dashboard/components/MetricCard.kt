@@ -2,6 +2,7 @@ package com.telemetria.app.ui.dashboard.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,9 +37,12 @@ fun MetricCard(
         modifier = modifier
             .background(CockpitCardBg, RoundedCornerShape(12.dp))
             .border(1.dp, CockpitBorder, RoundedCornerShape(12.dp))
-            .padding(vertical = 10.dp, horizontal = 12.dp)
+            .padding(vertical = 10.dp, horizontal = 12.dp),
+        contentAlignment = Alignment.CenterStart
     ) {
-        Column {
+        Column(
+            verticalArrangement = Arrangement.Center
+        ) {
             Text(
                 text = title.uppercase(),
                 fontSize = 10.sp,
