@@ -246,7 +246,9 @@ private fun DashboardPortraitContent(
                 title = "Distancia",
                 value = FormatUtils.formatDistanceKm(liveState.distanceMeters),
                 accentColor = NeonCyan,
-                valueFontSize = 22.sp,
+                titleFontSize = 13.sp,
+                valueFontSize = 30.sp,
+                unitFontSize = 14.sp,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
@@ -256,7 +258,9 @@ private fun DashboardPortraitContent(
                 title = "Tiempo",
                 value = FormatUtils.formatDuration(liveState.elapsedSeconds),
                 accentColor = NeonGreen,
-                valueFontSize = 22.sp,
+                titleFontSize = 13.sp,
+                valueFontSize = 28.sp,
+                unitFontSize = 14.sp,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
@@ -275,7 +279,9 @@ private fun DashboardPortraitContent(
                 value = FormatUtils.formatSpeed(liveState.maxSpeedKmh),
                 unit = "km/h",
                 accentColor = NeonRed,
-                valueFontSize = 22.sp,
+                titleFontSize = 13.sp,
+                valueFontSize = 30.sp,
+                unitFontSize = 14.sp,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
@@ -286,7 +292,9 @@ private fun DashboardPortraitContent(
                 value = FormatUtils.formatSpeed(liveState.avgSpeedKmh),
                 unit = "km/h",
                 accentColor = NeonAmber,
-                valueFontSize = 22.sp,
+                titleFontSize = 13.sp,
+                valueFontSize = 30.sp,
+                unitFontSize = 14.sp,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
@@ -450,7 +458,9 @@ private fun DashboardLandscapeContent(
                             title = "Distancia",
                             value = FormatUtils.formatDistanceKm(liveState.distanceMeters),
                             accentColor = NeonCyan,
-                            valueFontSize = 24.sp,
+                            titleFontSize = 11.sp,
+                            valueFontSize = 26.sp,
+                            unitFontSize = 12.sp,
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight()
@@ -460,7 +470,9 @@ private fun DashboardLandscapeContent(
                             title = "Tiempo",
                             value = FormatUtils.formatDuration(liveState.elapsedSeconds),
                             accentColor = NeonGreen,
+                            titleFontSize = 11.sp,
                             valueFontSize = 24.sp,
+                            unitFontSize = 12.sp,
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight()
@@ -478,7 +490,9 @@ private fun DashboardLandscapeContent(
                             value = FormatUtils.formatSpeed(liveState.maxSpeedKmh),
                             unit = "km/h",
                             accentColor = NeonRed,
-                            valueFontSize = 24.sp,
+                            titleFontSize = 11.sp,
+                            valueFontSize = 26.sp,
+                            unitFontSize = 12.sp,
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight()
@@ -489,7 +503,9 @@ private fun DashboardLandscapeContent(
                             value = FormatUtils.formatSpeed(liveState.avgSpeedKmh),
                             unit = "km/h",
                             accentColor = NeonAmber,
-                            valueFontSize = 24.sp,
+                            titleFontSize = 11.sp,
+                            valueFontSize = 26.sp,
+                            unitFontSize = 12.sp,
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight()

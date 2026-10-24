@@ -32,14 +32,16 @@ fun MetricCard(
     value: String,
     unit: String? = null,
     accentColor: Color = TextPrimary,
-    valueFontSize: TextUnit = 20.sp,
+    titleFontSize: TextUnit = 12.sp,
+    valueFontSize: TextUnit = 28.sp,
+    unitFontSize: TextUnit = 13.sp,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
             .background(CockpitCardBg, RoundedCornerShape(12.dp))
             .border(1.dp, CockpitBorder, RoundedCornerShape(12.dp))
-            .padding(vertical = 10.dp, horizontal = 12.dp),
+            .padding(vertical = 10.dp, horizontal = 14.dp),
         contentAlignment = Alignment.CenterStart
     ) {
         Column(
@@ -47,13 +49,13 @@ fun MetricCard(
         ) {
             Text(
                 text = title.uppercase(),
-                fontSize = 11.sp,
+                fontSize = titleFontSize,
                 fontWeight = FontWeight.Bold,
                 color = TextSecondary,
                 maxLines = 1
             )
 
-            Spacer(modifier = Modifier.height(3.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
@@ -65,13 +67,13 @@ fun MetricCard(
                     maxLines = 1
                 )
                 if (unit != null) {
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(5.dp))
                     Text(
                         text = unit,
-                        fontSize = 11.sp,
+                        fontSize = unitFontSize,
                         fontWeight = FontWeight.SemiBold,
                         color = TextSecondary,
-                        modifier = Modifier.padding(bottom = 2.dp)
+                        modifier = Modifier.padding(bottom = 3.dp)
                     )
                 }
             }
