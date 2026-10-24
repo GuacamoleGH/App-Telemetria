@@ -49,7 +49,7 @@ fun GMeterView(
             .fillMaxWidth()
             .background(CockpitCardBg, RoundedCornerShape(12.dp))
             .border(1.dp, CockpitBorder, RoundedCornerShape(12.dp))
-            .padding(10.dp)
+            .padding(vertical = 6.dp, horizontal = 10.dp)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
@@ -61,20 +61,20 @@ fun GMeterView(
             ) {
                 Text(
                     text = "G-METER (DINÁMICA)",
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextSecondary
                 )
 
                 Text(
                     text = if (isCalibrated) "CALIBRADO" else "AUTO-ESTIMADO",
-                    fontSize = 10.sp,
+                    fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (isCalibrated) NeonGreen else NeonAmber
                 )
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -83,7 +83,7 @@ fun GMeterView(
             ) {
                 // Diagrama circular de Kamm (Círculo de tracción / fuerzas G)
                 Canvas(
-                    modifier = Modifier.size(104.dp)
+                    modifier = Modifier.size(76.dp)
                 ) {
                     val center = Offset(size.width / 2f, size.height / 2f)
                     val maxRadius = size.width / 2f - 6.dp.toPx()
@@ -116,18 +116,18 @@ fun GMeterView(
 
                 // Lecturas numéricas
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Column {
                         Text(
                             text = "G LATERAL (CURVA)",
-                            fontSize = 10.sp,
+                            fontSize = 9.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = TextSecondary
                         )
                         Text(
                             text = String.format(Locale.US, "%+.2f G", lateralG),
-                            fontSize = 18.sp,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = FontFamily.Monospace,
                             color = if (lateralG >= 0f) NeonCyan else NeonAmber
@@ -137,13 +137,13 @@ fun GMeterView(
                     Column {
                         Text(
                             text = "G LONGITUDINAL (ACEL/FRENO)",
-                            fontSize = 10.sp,
+                            fontSize = 9.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = TextSecondary
                         )
                         Text(
                             text = String.format(Locale.US, "%+.2f G", longitudinalG),
-                            fontSize = 18.sp,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = FontFamily.Monospace,
                             color = if (longitudinalG >= 0f) NeonGreen else NeonRed

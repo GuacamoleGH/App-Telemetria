@@ -14,9 +14,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.History
@@ -70,7 +68,6 @@ fun DashboardScreen(
     val isObdDialogVisible by viewModel.isObdDialogVisible.collectAsState()
     val obdConnectionState by viewModel.obdConnectionState.collectAsState()
     val discoveredBleDevices by viewModel.discoveredBleDevices.collectAsState()
-    val scrollState = rememberScrollState()
 
     // Diálogo de conexión OBD-II BLE
     if (isObdDialogVisible) {
@@ -215,9 +212,8 @@ fun DashboardScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 2.dp)
-                .verticalScroll(scrollState),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(horizontal = 14.dp, vertical = 2.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             // Header: Status indicators + Controles
             Row(
@@ -284,7 +280,7 @@ fun DashboardScreen(
                     videoDurationSec = liveState.videoDurationSec,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp)
+                        .height(105.dp)
                 )
             }
 
@@ -305,10 +301,10 @@ fun DashboardScreen(
                 isCalibrated = liveState.isSensorCalibrated
             )
 
-            // Grid de Métricas Primarias
+            // Fila de 4 Métricas en una sola línea (Distancia, Tiempo, Vel. Máxima, Vel. Media)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 MetricCard(
                     title = "Distancia",
@@ -323,14 +319,9 @@ fun DashboardScreen(
                     accentColor = NeonGreen,
                     modifier = Modifier.weight(1f)
                 )
-            }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
                 MetricCard(
-                    title = "Vel. Máxima",
+                    title = "Vel. Máx",
                     value = FormatUtils.formatSpeed(liveState.maxSpeedKmh),
                     unit = "km/h",
                     accentColor = NeonRed,
@@ -338,7 +329,7 @@ fun DashboardScreen(
                 )
 
                 MetricCard(
-                    title = "Vel. Media",
+                    title = "Vel. Med",
                     value = FormatUtils.formatSpeed(liveState.avgSpeedKmh),
                     unit = "km/h",
                     accentColor = NeonAmber,
@@ -350,7 +341,7 @@ fun DashboardScreen(
             if (liveState.isObdConnected) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     MetricCard(
                         title = "Refrigerante",
@@ -367,9 +358,6 @@ fun DashboardScreen(
                     )
                 }
             }
-
-            // Espacio final para que las últimas tarjetas nunca queden tapadas por el botón al hacer scroll
-            Spacer(modifier = Modifier.height(28.dp))
         }
     }
 }
