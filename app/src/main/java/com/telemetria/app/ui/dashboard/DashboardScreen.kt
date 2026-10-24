@@ -97,7 +97,7 @@ fun DashboardScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
                 ) {
                     when (liveState.status) {
                         SessionStatus.COMPLETED -> {
@@ -105,7 +105,7 @@ fun DashboardScreen(
                                 onClick = { viewModel.onStartClicked() },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(56.dp),
+                                    .height(52.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = NeonGreen,
                                     contentColor = CockpitBlack
@@ -215,9 +215,9 @@ fun DashboardScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(horizontal = 16.dp, vertical = 2.dp)
                 .verticalScroll(scrollState),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Header: Status indicators + Controles
             Row(
@@ -367,8 +367,6 @@ fun DashboardScreen(
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(10.dp))
         }
     }
 }

@@ -39,7 +39,7 @@ fun SpeedGauge(
             .fillMaxWidth()
             .background(CockpitCardBg, RoundedCornerShape(16.dp))
             .border(1.dp, CockpitBorder, RoundedCornerShape(16.dp))
-            .padding(vertical = 24.dp, horizontal = 20.dp),
+            .padding(vertical = 10.dp, horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -55,19 +55,19 @@ fun SpeedGauge(
 
                 Text(
                     text = speedDisplay,
-                    fontSize = 82.sp,
+                    fontSize = 70.sp,
                     fontWeight = FontWeight.Black,
                     fontFamily = FontFamily.Monospace,
                     color = speedColor,
-                    lineHeight = 84.sp
+                    lineHeight = 72.sp
                 )
 
                 Text(
                     text = "KM/H",
-                    fontSize = 18.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextSecondary,
-                    modifier = Modifier.padding(start = 8.dp, bottom = 12.dp)
+                    modifier = Modifier.padding(start = 6.dp, bottom = 8.dp)
                 )
             }
 

@@ -49,7 +49,7 @@ fun GMeterView(
             .fillMaxWidth()
             .background(CockpitCardBg, RoundedCornerShape(12.dp))
             .border(1.dp, CockpitBorder, RoundedCornerShape(12.dp))
-            .padding(14.dp)
+            .padding(10.dp)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
@@ -74,7 +74,7 @@ fun GMeterView(
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -83,7 +83,7 @@ fun GMeterView(
             ) {
                 // Diagrama circular de Kamm (Círculo de tracción / fuerzas G)
                 Canvas(
-                    modifier = Modifier.size(130.dp)
+                    modifier = Modifier.size(104.dp)
                 ) {
                     val center = Offset(size.width / 2f, size.height / 2f)
                     val maxRadius = size.width / 2f - 6.dp.toPx()

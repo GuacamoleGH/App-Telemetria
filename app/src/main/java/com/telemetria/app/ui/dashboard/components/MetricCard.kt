@@ -34,7 +34,7 @@ fun MetricCard(
         modifier = modifier
             .background(CockpitCardBg, RoundedCornerShape(12.dp))
             .border(1.dp, CockpitBorder, RoundedCornerShape(12.dp))
-            .padding(12.dp)
+            .padding(vertical = 8.dp, horizontal = 12.dp)
     ) {
         Column {
             Text(

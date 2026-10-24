@@ -51,7 +51,7 @@ fun RpmBar(
             .fillMaxWidth()
             .background(CockpitCardBg, RoundedCornerShape(12.dp))
             .border(1.dp, CockpitBorder, RoundedCornerShape(12.dp))
-            .padding(12.dp)
+            .padding(vertical = 8.dp, horizontal = 12.dp)
     ) {
         Column {
             Row(
@@ -75,7 +75,7 @@ fun RpmBar(
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             // Barra de LEDs segmentados tipo MyChron 5
             Row(
