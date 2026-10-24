@@ -40,33 +40,33 @@ fun StatusIndicatorRow(
 ) {
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // GPS Indicator
+        // Indicador GPS: unifica estado, precisión y tasa de refresco (Hz)
         val gpsColor = if (gpsFix) NeonGreen else NeonRed
         val gpsLabel = if (gpsFix) {
-            val acc = gpsAccuracyMeters?.let { "±${String.format(Locale.US, "%.1f", it)}m" } ?: "OK"
-            "GPS $acc"
+            val acc = gpsAccuracyMeters?.let { "±${it.toInt()}m" } ?: "OK"
+            if (sampleRateHz > 0f) {
+                val hzText = if (sampleRateHz >= 10f) {
+                    String.format(Locale.US, "%.0fHz", sampleRateHz)
+                } else {
+                    String.format(Locale.US, "%.1fHz", sampleRateHz)
+                }
+                "GPS $acc · $hzText"
+            } else {
+                "GPS $acc"
+            }
         } else {
             "GPS BUSCANDO"
         }
         StatusBadge(label = gpsLabel, activeColor = gpsColor, isActive = gpsFix)
 
-        // Sample rate indicator
-        if (gpsFix && sampleRateHz > 0f) {
-            StatusBadge(
-                label = "${String.format(Locale.US, "%.1f", sampleRateHz)} Hz",
-                activeColor = NeonCyan,
-                isActive = true
-            )
-        }
-
-        // OBD Status badge (clickeable para conectar / configurar)
+        // Indicador OBD: compacto para que los botones de acción nunca se desborden
         val obdLabel = when {
-            obdConnected && obdHz > 0f -> "OBD ${String.format(Locale.US, "%.1f", obdHz)} Hz"
-            obdConnected -> "OBD BLE OK"
-            else -> "CONECTAR OBD"
+            obdConnected && obdHz > 0f -> "OBD ${String.format(Locale.US, "%.0fHz", obdHz)}"
+            obdConnected -> "OBD OK"
+            else -> "OBD"
         }
 
         StatusBadge(

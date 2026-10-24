@@ -554,14 +554,18 @@ private fun DashboardHeaderRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        StatusIndicatorRow(
-            gpsFix = liveState.gpsFix,
-            gpsAccuracyMeters = liveState.gpsAccuracyMeters,
-            sampleRateHz = liveState.sampleRateHz,
-            obdConnected = liveState.isObdConnected,
-            obdHz = liveState.obdRealHz,
-            onObdClick = onObdClick
-        )
+        Box(
+            modifier = Modifier.weight(1f, fill = false)
+        ) {
+            StatusIndicatorRow(
+                gpsFix = liveState.gpsFix,
+                gpsAccuracyMeters = liveState.gpsAccuracyMeters,
+                sampleRateHz = liveState.sampleRateHz,
+                obdConnected = liveState.isObdConnected,
+                obdHz = liveState.obdRealHz,
+                onObdClick = onObdClick
+            )
+        }
 
         Row(
             horizontalArrangement = Arrangement.spacedBy(2.dp),
@@ -569,7 +573,7 @@ private fun DashboardHeaderRow(
         ) {
             IconButton(
                 onClick = onToggleVideo,
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(34.dp)
             ) {
                 Icon(
                     imageVector = if (isVideoEnabled) Icons.Default.Videocam else Icons.Default.VideocamOff,
@@ -582,7 +586,7 @@ private fun DashboardHeaderRow(
             IconButton(
                 onClick = onCalibrate,
                 enabled = !liveState.isCalibrating,
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(34.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.ScreenRotation,
@@ -594,7 +598,7 @@ private fun DashboardHeaderRow(
 
             IconButton(
                 onClick = onOpenSettings,
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(34.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Tune,
@@ -606,7 +610,7 @@ private fun DashboardHeaderRow(
 
             IconButton(
                 onClick = onNavigateToHistory,
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(34.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.History,
