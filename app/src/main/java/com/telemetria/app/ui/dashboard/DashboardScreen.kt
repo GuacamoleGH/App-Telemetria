@@ -172,15 +172,18 @@ private fun DashboardPortraitContent(
             onNavigateToHistory = onNavigateToHistory
         )
 
-        // Visor de Cámara CameraX
-        AnimatedVisibility(visible = isVideoEnabled) {
+        // Visor de Cámara CameraX: cuando está activa se expande (weight 1f) para absorber el espacio vertical y eliminar el hueco inferior
+        AnimatedVisibility(
+            visible = isVideoEnabled,
+            modifier = if (isVideoEnabled) Modifier.weight(1f) else Modifier
+        ) {
             CameraPreviewView(
                 videoRecordingManager = viewModel.videoRecordingManager,
                 isRecording = liveState.isVideoRecording,
                 videoDurationSec = liveState.videoDurationSec,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(105.dp)
+                    .fillMaxHeight()
             )
         }
 
