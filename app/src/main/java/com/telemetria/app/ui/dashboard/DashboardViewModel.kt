@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.telemetria.app.core.database.TelemetryDatabase
 import com.telemetria.app.core.location.TelemetryService
 import com.telemetria.app.core.model.Session
-import com.telemetria.app.core.model.SessionStatus
 import com.telemetria.app.core.session.SessionLiveState
 import com.telemetria.app.core.session.SessionManager
 import kotlinx.coroutines.flow.StateFlow
@@ -21,7 +20,6 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun onStartClicked(title: String = "") {
         viewModelScope.launch {
-            // Iniciar foreground service
             TelemetryService.startService(getApplication())
             sessionManager.startNewSession(title)
         }
@@ -44,5 +42,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
     }
-}
 
+    fun onCalibrateSensorsClicked() {
+        sessionManager.startOrientationCalibration()
+    }
+}

@@ -54,3 +54,4 @@ com.telemetria.app/
 ./gradlew assembleDebug
 ```
 El archivo ejecutable generado se sitúa en `app/build/outputs/apk/debug/app-debug.apk`.
+

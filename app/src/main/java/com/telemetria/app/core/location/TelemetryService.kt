@@ -14,8 +14,8 @@ import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.telemetria.app.MainActivity
-import com.telemetria.app.R
 import com.telemetria.app.core.database.TelemetryDatabase
+import com.telemetria.app.core.sensor.InertialSensorManager
 import com.telemetria.app.core.session.SessionManager
 import com.telemetria.app.core.util.FormatUtils
 import kotlinx.coroutines.CoroutineScope
@@ -30,10 +30,12 @@ class TelemetryService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var locationJob: Job? = null
+    private var sensorJob: Job? = null
     private var statusObserverJob: Job? = null
     private var wakeLock: PowerManager.WakeLock? = null
 
     private lateinit var gpsTracker: GpsTracker
+    private lateinit var inertialSensorManager: InertialSensorManager
     private lateinit var sessionManager: SessionManager
     private lateinit var notificationManager: NotificationManager
 
@@ -42,6 +44,7 @@ class TelemetryService : Service() {
         val db = TelemetryDatabase.getInstance(this)
         sessionManager = SessionManager.getInstance(db)
         gpsTracker = GpsTracker(this)
+        inertialSensorManager = InertialSensorManager(this)
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         createNotificationChannel()
@@ -66,24 +69,21 @@ class TelemetryService : Service() {
     }
 
     private fun startForegroundTracking() {
-        val initialNotification = buildNotification("Iniciando servicio de telemetría...", "Esperando señal GPS...")
+        val initialNotification = buildNotification("Iniciando servicio de telemetría...", "Esperando señal GPS y sensores...")
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ServiceCompat.startForeground(
                 this,
                 NOTIFICATION_ID,
                 initialNotification,
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
-                } else {
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
-                }
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
             )
         } else {
             startForeground(NOTIFICATION_ID, initialNotification)
         }
 
         startGpsCollection()
+        startSensorCollection()
         observeLiveState()
     }
 
@@ -93,6 +93,19 @@ class TelemetryService : Service() {
             try {
                 gpsTracker.observeLocation(intervalMillis = 1000L).collect { snapshot ->
                     sessionManager.onGpsReceived(snapshot)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    private fun startSensorCollection() {
+        sensorJob?.cancel()
+        sensorJob = serviceScope.launch {
+            try {
+                inertialSensorManager.observeInertialSensors().collect { snapshot ->
+                    sessionManager.onInertialReceived(snapshot)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -113,7 +126,8 @@ class TelemetryService : Service() {
                 val speedStr = FormatUtils.formatSpeed(state.currentSpeedKmh)
                 val distStr = FormatUtils.formatDistanceKm(state.distanceMeters)
                 val timeStr = FormatUtils.formatDuration(state.elapsedSeconds)
-                val content = "$speedStr km/h | $distStr | $timeStr"
+                val gStr = String.format(java.util.Locale.US, "%.2fG Lat", state.lateralG)
+                val content = "$speedStr km/h | $distStr | $gStr"
 
                 notificationManager.notify(NOTIFICATION_ID, buildNotification(title, content))
             }
@@ -122,6 +136,7 @@ class TelemetryService : Service() {
 
     private fun stopForegroundTracking() {
         locationJob?.cancel()
+        sensorJob?.cancel()
         statusObserverJob?.cancel()
         releaseWakeLock()
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -169,7 +184,7 @@ class TelemetryService : Service() {
             "Telemetria::TrackingWakeLock"
         )?.apply {
             setReferenceCounted(false)
-            acquire(4 * 60 * 60 * 1000L) // 4 horas max timeout
+            acquire(4 * 60 * 60 * 1000L)
         }
     }
 
@@ -217,4 +232,3 @@ class TelemetryService : Service() {
         }
     }
 }
-

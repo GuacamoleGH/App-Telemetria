@@ -7,6 +7,8 @@ import com.telemetria.app.core.database.entity.TelemetryPointEntity
 import com.telemetria.app.core.model.GpsSnapshot
 import com.telemetria.app.core.model.Session
 import com.telemetria.app.core.model.SessionStatus
+import com.telemetria.app.core.sensor.OrientationCalibrator
+import com.telemetria.app.core.sensor.model.InertialSnapshot
 import com.telemetria.app.core.util.CalculationUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -17,28 +19,35 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
+import kotlin.math.abs
 
 class SessionManager private constructor(
     private val database: TelemetryDatabase
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var batchWriter: TelemetryBatchWriter? = null
+    val orientationCalibrator = OrientationCalibrator()
 
     private val _liveState = MutableStateFlow(SessionLiveState())
     val liveState: StateFlow<SessionLiveState> = _liveState.asStateFlow()
 
     private var activeSession: Session? = null
     private var lastRecordedLocation: GpsSnapshot? = null
-    private var lastSampleTimeMillis: Long = 0
     private var sampleCountWindow: Int = 0
     private var sampleWindowStart: Long = 0
 
+    // Última aceleración lineal y G-forces para enriquecer los puntos grabados
+    private var latestInertial: InertialSnapshot? = null
+    private var currentLateralG: Float = 0f
+    private var currentLongitudinalG: Float = 0f
+
+    // Ventana para reducción de tasa de persistencia inercial (ej. persistir a 10Hz en base de datos)
+    private var lastInertialPersistMillis: Long = 0L
+
     init {
-        // Al arrancar, verificar si existe una sesión previa interrumpida (recuperación de cierre inesperado)
         scope.launch(Dispatchers.IO) {
             val uncompleted = database.sessionDao().getActiveOrPausedSession()
             if (uncompleted != null) {
-                // Recuperar la sesión activa o marcarla como pausada para que el usuario pueda reanudarla o cerrarla
                 val restored = uncompleted.toDomain()
                 activeSession = restored
                 _liveState.update {
@@ -55,6 +64,11 @@ class SessionManager private constructor(
                 batchWriter = TelemetryBatchWriter(database.telemetryPointDao(), scope)
             }
         }
+    }
+
+    fun startOrientationCalibration() {
+        orientationCalibrator.startCalibration()
+        _liveState.update { it.copy(isCalibrating = true, isSensorCalibrated = false) }
     }
 
     suspend fun startNewSession(title: String = ""): Session {
@@ -85,7 +99,8 @@ class SessionManager private constructor(
         _liveState.update {
             SessionLiveState(
                 currentSession = session,
-                status = SessionStatus.ACTIVE
+                status = SessionStatus.ACTIVE,
+                isSensorCalibrated = orientationCalibrator.isCalibrated
             )
         }
 
@@ -152,6 +167,73 @@ class SessionManager private constructor(
         return completed
     }
 
+    fun onInertialReceived(snapshot: InertialSnapshot) {
+        latestInertial = snapshot
+
+        // Si se encuentra en proceso de calibración, alimentar muestras de gravedad
+        if (_liveState.value.isCalibrating) {
+            val finished = orientationCalibrator.addCalibrationSample(
+                snapshot.rawAccelX,
+                snapshot.rawAccelY,
+                snapshot.rawAccelZ
+            )
+            if (finished) {
+                _liveState.update { it.copy(isCalibrating = false, isSensorCalibrated = true) }
+            }
+            return
+        }
+
+        val gForces = orientationCalibrator.transformToVehicleG(snapshot)
+        currentLateralG = gForces.lateralG
+        currentLongitudinalG = gForces.longitudinalG
+
+        var newMaxLat = _liveState.value.maxLateralG
+        var newMaxLong = _liveState.value.maxLongitudinalG
+
+        if (abs(currentLateralG) > newMaxLat) {
+            newMaxLat = abs(currentLateralG)
+        }
+        if (abs(currentLongitudinalG) > newMaxLong) {
+            newMaxLong = abs(currentLongitudinalG)
+        }
+
+        val session = activeSession
+        val now = snapshot.timestampMillis
+
+        // Persistir puntos intermedios de alta frecuencia (cada ~100 ms / 10 Hz) cuando la sesión está activa
+        if (session != null && session.status == SessionStatus.ACTIVE && (now - lastInertialPersistMillis >= 100L)) {
+            lastInertialPersistMillis = now
+            val entity = TelemetryPointEntity(
+                sessionId = session.id,
+                timestampMillis = snapshot.timestampMillis,
+                monotonicNanos = snapshot.monotonicNanos,
+                latitude = lastRecordedLocation?.latitude,
+                longitude = lastRecordedLocation?.longitude,
+                altitudeMeters = lastRecordedLocation?.altitudeMeters,
+                gpsSpeedKmh = lastRecordedLocation?.speedKmh,
+                bearingDegrees = lastRecordedLocation?.bearingDegrees,
+                accuracyMeters = lastRecordedLocation?.accuracyMeters,
+                hasGpsFix = lastRecordedLocation?.isRealFix ?: false,
+                accelX = snapshot.linearAccelX,
+                accelY = snapshot.linearAccelY,
+                accelZ = snapshot.linearAccelZ,
+                lateralG = currentLateralG,
+                longitudinalG = currentLongitudinalG
+            )
+            batchWriter?.enqueue(entity)
+        }
+
+        _liveState.update {
+            it.copy(
+                lateralG = currentLateralG,
+                longitudinalG = currentLongitudinalG,
+                maxLateralG = newMaxLat,
+                maxLongitudinalG = newMaxLong,
+                isSensorCalibrated = orientationCalibrator.isCalibrated
+            )
+        }
+    }
+
     fun onGpsReceived(gps: GpsSnapshot) {
         val session = activeSession
         val now = System.currentTimeMillis()
@@ -173,17 +255,26 @@ class SessionManager private constructor(
         val currentSpeed = gps.speedKmh ?: 0f
         var newMaxSpeed = _liveState.value.maxSpeedKmh
 
+        // Calcular aceleración longitudinal derivada de la velocidad GPS (dv / dt)
+        var gpsDerivedG: Float? = null
+        val prevLoc = lastRecordedLocation
+        if (prevLoc != null && prevLoc.speedKmh != null && gps.speedKmh != null) {
+            val dtSec = (gps.timestampMillis - prevLoc.timestampMillis) / 1000.0f
+            if (dtSec in 0.2f..2.5f) {
+                val dvMps = ((gps.speedKmh - prevLoc.speedKmh) / 3.6f)
+                val accMps2 = dvMps / dtSec
+                gpsDerivedG = accMps2 / OrientationCalibrator.STANDARD_GRAVITY
+            }
+        }
+
         if (session != null && session.status == SessionStatus.ACTIVE) {
-            // Calcular incremento de distancia si la precisión es aceptable
-            val lastLoc = lastRecordedLocation
-            if (lastLoc != null && (gps.accuracyMeters ?: 100f) < 30f) {
+            if (prevLoc != null && (gps.accuracyMeters ?: 100f) < 30f) {
                 val d = CalculationUtils.haversineDistanceMeters(
-                    lat1 = lastLoc.latitude,
-                    lon1 = lastLoc.longitude,
+                    lat1 = prevLoc.latitude,
+                    lon1 = prevLoc.longitude,
                     lat2 = gps.latitude,
                     lon2 = gps.longitude
                 )
-                // Filtrar saltos de ruido GPS si la velocidad es muy baja
                 if (d > 0.5 && d < 200.0) {
                     newDistance += d
                 }
@@ -198,7 +289,7 @@ class SessionManager private constructor(
             val elapsedSec = ((now - session.startTimeMillis) / 1000).coerceAtLeast(1)
             val avgSpeed = ((newDistance / 1000.0) / (elapsedSec / 3600.0)).toFloat()
 
-            // Crear y encolar el punto para escritura en lote
+            val imu = latestInertial
             val entity = TelemetryPointEntity(
                 sessionId = session.id,
                 timestampMillis = gps.timestampMillis,
@@ -209,11 +300,15 @@ class SessionManager private constructor(
                 gpsSpeedKmh = gps.speedKmh,
                 bearingDegrees = gps.bearingDegrees,
                 accuracyMeters = gps.accuracyMeters,
-                hasGpsFix = gps.isRealFix
+                hasGpsFix = gps.isRealFix,
+                accelX = imu?.linearAccelX,
+                accelY = imu?.linearAccelY,
+                accelZ = imu?.linearAccelZ,
+                lateralG = currentLateralG,
+                longitudinalG = currentLongitudinalG
             )
             batchWriter?.enqueue(entity)
 
-            // Actualizar periódicamente en la BD para tolerar cierres de la app
             if (newCount % 10L == 0L) {
                 scope.launch(Dispatchers.IO) {
                     database.sessionDao().updateLiveStats(
@@ -238,18 +333,20 @@ class SessionManager private constructor(
                     gpsFix = gps.isRealFix,
                     gpsAccuracyMeters = gps.accuracyMeters,
                     sampleRateHz = currentHz,
-                    pointCount = newCount
+                    pointCount = newCount,
+                    gpsDerivedLongitudinalG = gpsDerivedG
                 )
             }
         } else {
-            // Solo monitorización sin grabación activa
+            lastRecordedLocation = gps
             _liveState.update {
                 it.copy(
                     currentSpeedKmh = currentSpeed,
                     latestGps = gps,
                     gpsFix = gps.isRealFix,
                     gpsAccuracyMeters = gps.accuracyMeters,
-                    sampleRateHz = currentHz
+                    sampleRateHz = currentHz,
+                    gpsDerivedLongitudinalG = gpsDerivedG
                 )
             }
         }
@@ -268,4 +365,3 @@ class SessionManager private constructor(
         }
     }
 }
-

@@ -16,6 +16,14 @@ data class SessionLiveState(
     val gpsFix: Boolean = false,
     val gpsAccuracyMeters: Float? = null,
     val sampleRateHz: Float = 0f,
-    val pointCount: Long = 0
-)
+    val pointCount: Long = 0,
 
+    // IMU & Dynamics (Fase 3)
+    val lateralG: Float = 0f,
+    val longitudinalG: Float = 0f,
+    val gpsDerivedLongitudinalG: Float? = null,
+    val maxLateralG: Float = 0f,
+    val maxLongitudinalG: Float = 0f,
+    val isSensorCalibrated: Boolean = false,
+    val isCalibrating: Boolean = false
+)

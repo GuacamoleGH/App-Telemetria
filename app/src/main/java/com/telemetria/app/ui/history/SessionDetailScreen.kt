@@ -14,7 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.telemetria.app.core.util.FormatUtils
 import com.telemetria.app.ui.dashboard.components.MetricCard
+import com.telemetria.app.ui.history.components.GForceGraph
 import com.telemetria.app.ui.history.components.MapViewOsm
 import com.telemetria.app.ui.history.components.SpeedElevationGraph
 import com.telemetria.app.ui.theme.CockpitBlack
@@ -87,7 +88,7 @@ fun SessionDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
                             tint = NeonCyan
                         )
@@ -174,6 +175,9 @@ fun SessionDetailScreen(
                 // Gráfica de perfil de velocidad (Canvas nativo)
                 SpeedElevationGraph(points = points)
 
+                // Gráfica de Fuerzas G dinámicas (Fase 3: Lateral y Longitudinal)
+                GForceGraph(points = points)
+
                 Spacer(modifier = Modifier.height(6.dp))
 
                 // Botones de Exportación
@@ -217,4 +221,3 @@ fun SessionDetailScreen(
         }
     }
 }
-

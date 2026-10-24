@@ -18,11 +18,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -35,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.telemetria.app.core.model.SessionStatus
 import com.telemetria.app.core.util.FormatUtils
+import com.telemetria.app.ui.dashboard.components.GMeterView
 import com.telemetria.app.ui.dashboard.components.MetricCard
 import com.telemetria.app.ui.dashboard.components.RpmBar
 import com.telemetria.app.ui.dashboard.components.SpeedGauge
@@ -67,7 +70,7 @@ fun DashboardScreen(
                 .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Header: Status indicators + History Button
+            // Header: Status indicators + Calibración + Botón Historial
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -77,19 +80,32 @@ fun DashboardScreen(
                     gpsFix = liveState.gpsFix,
                     gpsAccuracyMeters = liveState.gpsAccuracyMeters,
                     sampleRateHz = liveState.sampleRateHz,
-                    obdConnected = false // En F6 se conectará con BLE
+                    obdConnected = false
                 )
 
-                IconButton(onClick = onNavigateToHistory) {
-                    Icon(
-                        imageVector = Icons.Default.History,
-                        contentDescription = "Historial de Sesiones",
-                        tint = NeonCyan
-                    )
+                Row {
+                    IconButton(
+                        onClick = { viewModel.onCalibrateSensorsClicked() },
+                        enabled = !liveState.isCalibrating
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ScreenRotation,
+                            contentDescription = "Calibrar posición de sensores",
+                            tint = if (liveState.isCalibrating) NeonAmber else if (liveState.isSensorCalibrated) NeonGreen else TextPrimary
+                        )
+                    }
+
+                    IconButton(onClick = onNavigateToHistory) {
+                        Icon(
+                            imageVector = Icons.Default.History,
+                            contentDescription = "Historial de Sesiones",
+                            tint = NeonCyan
+                        )
+                    }
                 }
             }
 
-            // Tacómetro estilo MyChron
+            // Tacómetro estilo MyChron 5
             RpmBar(rpm = null)
 
             // Velocímetro Central
@@ -98,7 +114,15 @@ fun DashboardScreen(
                 isGpsValid = liveState.gpsFix
             )
 
-            // Grid de Métricas (2 x 2)
+            // G-Meter Dinámico (Fuerzas G Lateral / Longitudinal en tiempo real)
+            GMeterView(
+                lateralG = liveState.lateralG,
+                longitudinalG = liveState.longitudinalG,
+                gpsDerivedLongG = liveState.gpsDerivedLongitudinalG,
+                isCalibrated = liveState.isSensorCalibrated
+            )
+
+            // Grid de Métricas
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -139,7 +163,7 @@ fun DashboardScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             // Botones de Control de Sesión
             when (liveState.status) {
@@ -252,4 +276,3 @@ fun DashboardScreen(
         }
     }
 }
-
