@@ -129,13 +129,14 @@ fun GMeterView(
                     }
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(28.dp))
 
-                // Lecturas numéricas a la derecha
+                // Lecturas numéricas a la derecha (desplazadas hacia la derecha para centrar en el espacio)
                 Column(
                     modifier = Modifier
                         .weight(1.15f)
-                        .fillMaxHeight(),
+                        .fillMaxHeight()
+                        .padding(start = 12.dp),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.Start
                 ) {

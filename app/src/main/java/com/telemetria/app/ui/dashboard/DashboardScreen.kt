@@ -192,8 +192,8 @@ private fun DashboardPortraitContent(
         )
 
         // Pesos dinámicos: cuando la cámara está apagada, los bloques se expanden para ocupar todo el espacio inferior
-        val speedGaugeWeight = if (isVideoEnabled) 0.88f else 1.10f
-        val gMeterWeight = if (isVideoEnabled) 1.35f else 1.65f
+        val speedGaugeWeight = if (isVideoEnabled) 0.98f else 1.10f
+        val gMeterWeight = if (isVideoEnabled) 1.25f else 1.65f
         val metricRowWeight = if (isVideoEnabled) 0.65f else 0.75f
 
         // Visor de Cámara CameraX: cuando está activa toma su proporción y los demás bloques se adaptan
@@ -223,6 +223,9 @@ private fun DashboardPortraitContent(
         SpeedGauge(
             speedKmh = liveState.currentSpeedKmh,
             isGpsValid = liveState.gpsFix,
+            speedFontSize = if (isVideoEnabled) 52.sp else 68.sp,
+            unitFontSize = if (isVideoEnabled) 14.sp else 16.sp,
+            verticalPadding = if (isVideoEnabled) 6.dp else 12.dp,
             modifier = Modifier.weight(speedGaugeWeight)
         )
 

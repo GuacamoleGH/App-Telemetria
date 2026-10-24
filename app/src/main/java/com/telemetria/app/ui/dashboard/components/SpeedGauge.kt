@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,14 +35,15 @@ fun SpeedGauge(
     isGpsValid: Boolean,
     modifier: Modifier = Modifier,
     speedFontSize: TextUnit = 68.sp,
-    unitFontSize: TextUnit = 16.sp
+    unitFontSize: TextUnit = 16.sp,
+    verticalPadding: Dp = 10.dp
 ) {
     Box(
         modifier = modifier
             .fillMaxWidth()
             .background(CockpitCardBg, RoundedCornerShape(16.dp))
             .border(1.dp, CockpitBorder, RoundedCornerShape(16.dp))
-            .padding(vertical = 12.dp, horizontal = 8.dp),
+            .padding(vertical = verticalPadding, horizontal = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
