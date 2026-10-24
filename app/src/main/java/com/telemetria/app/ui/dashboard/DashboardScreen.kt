@@ -244,7 +244,8 @@ private fun DashboardPortraitContent(
         ) {
             MetricCard(
                 title = "Distancia",
-                value = FormatUtils.formatDistanceKm(liveState.distanceMeters),
+                value = FormatUtils.formatDistanceValue(liveState.distanceMeters),
+                unit = "km",
                 accentColor = NeonCyan,
                 titleFontSize = 13.sp,
                 valueFontSize = 30.sp,
@@ -458,10 +459,11 @@ private fun DashboardLandscapeContent(
                     ) {
                         MetricCard(
                             title = "Distancia",
-                            value = FormatUtils.formatDistanceKm(liveState.distanceMeters),
+                            value = FormatUtils.formatDistanceValue(liveState.distanceMeters),
+                            unit = "km",
                             accentColor = NeonCyan,
                             titleFontSize = 11.sp,
-                            valueFontSize = 26.sp,
+                            valueFontSize = 24.sp,
                             unitFontSize = 12.sp,
                             modifier = Modifier
                                 .weight(1f)
@@ -493,7 +495,7 @@ private fun DashboardLandscapeContent(
                             unit = "km/h",
                             accentColor = NeonRed,
                             titleFontSize = 11.sp,
-                            valueFontSize = 26.sp,
+                            valueFontSize = 24.sp,
                             unitFontSize = 12.sp,
                             modifier = Modifier
                                 .weight(1f)
@@ -506,7 +508,7 @@ private fun DashboardLandscapeContent(
                             unit = "km/h",
                             accentColor = NeonAmber,
                             titleFontSize = 11.sp,
-                            valueFontSize = 26.sp,
+                            valueFontSize = 24.sp,
                             unitFontSize = 12.sp,
                             modifier = Modifier
                                 .weight(1f)

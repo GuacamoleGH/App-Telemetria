@@ -24,6 +24,11 @@ object FormatUtils {
         return String.format(Locale.US, "%.2f km", km)
     }
 
+    fun formatDistanceValue(meters: Double): String {
+        val km = meters / 1000.0
+        return String.format(Locale.US, "%.2f", km)
+    }
+
     fun formatSpeed(speedKmh: Float): String {
         return String.format(Locale.US, "%.1f", speedKmh)
     }

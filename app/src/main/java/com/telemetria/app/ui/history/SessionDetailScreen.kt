@@ -144,7 +144,8 @@ fun SessionDetailScreen(
                 ) {
                     MetricCard(
                         title = "Distancia",
-                        value = FormatUtils.formatDistanceKm(currentSession.totalDistanceMeters),
+                        value = FormatUtils.formatDistanceValue(currentSession.totalDistanceMeters),
+                        unit = "km",
                         accentColor = NeonCyan,
                         modifier = Modifier.weight(1f)
                     )
