@@ -1,5 +1,7 @@
 package com.telemetria.app.ui.dashboard.components
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -32,11 +34,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.telemetria.app.core.obd.BlePermissionHelper
 import com.telemetria.app.core.obd.model.ObdConnectionState
 import com.telemetria.app.core.obd.scanner.DiscoveredBleDevice
 import com.telemetria.app.ui.theme.CockpitBorder
@@ -60,6 +64,16 @@ fun ObdConnectDialog(
     onDisconnect: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val allGranted = permissions.values.all { it }
+        if (allGranted) {
+            onStartScan()
+        }
+    }
+
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(16.dp),
@@ -244,7 +258,13 @@ fun ObdConnectDialog(
                             }
                         } else {
                             Button(
-                                onClick = onStartScan,
+                                onClick = {
+                                    if (BlePermissionHelper.hasBlePermissions(context)) {
+                                        onStartScan()
+                                    } else {
+                                        permissionLauncher.launch(BlePermissionHelper.getRequiredBlePermissions().toTypedArray())
+                                    }
+                                },
                                 modifier = Modifier.weight(1f).height(46.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = Color.Black),
                                 shape = RoundedCornerShape(10.dp)

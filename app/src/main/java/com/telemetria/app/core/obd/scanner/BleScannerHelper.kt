@@ -51,7 +51,12 @@ class BleScannerHelper(private val context: Context) {
             }
         }
 
-        scanner.startScan(callback)
+        try {
+            scanner.startScan(callback)
+        } catch (e: SecurityException) {
+            close(IllegalStateException("Permiso Bluetooth no concedido: ${e.message}"))
+            return@callbackFlow
+        }
 
         val handler = Handler(Looper.getMainLooper())
         handler.postDelayed({
