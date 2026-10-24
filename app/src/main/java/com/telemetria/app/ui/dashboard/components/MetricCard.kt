@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.telemetria.app.ui.theme.CockpitBorder
@@ -31,6 +32,7 @@ fun MetricCard(
     value: String,
     unit: String? = null,
     accentColor: Color = TextPrimary,
+    valueFontSize: TextUnit = 20.sp,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -45,7 +47,7 @@ fun MetricCard(
         ) {
             Text(
                 text = title.uppercase(),
-                fontSize = 10.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 color = TextSecondary,
                 maxLines = 1
@@ -56,7 +58,7 @@ fun MetricCard(
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
                     text = value,
-                    fontSize = 19.sp,
+                    fontSize = valueFontSize,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace,
                     color = accentColor,
@@ -66,7 +68,7 @@ fun MetricCard(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = unit,
-                        fontSize = 10.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = TextSecondary,
                         modifier = Modifier.padding(bottom = 2.dp)

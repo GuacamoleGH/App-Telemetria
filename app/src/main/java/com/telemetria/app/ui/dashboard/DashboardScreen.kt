@@ -246,6 +246,7 @@ private fun DashboardPortraitContent(
                 title = "Distancia",
                 value = FormatUtils.formatDistanceKm(liveState.distanceMeters),
                 accentColor = NeonCyan,
+                valueFontSize = 22.sp,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
@@ -255,6 +256,7 @@ private fun DashboardPortraitContent(
                 title = "Tiempo",
                 value = FormatUtils.formatDuration(liveState.elapsedSeconds),
                 accentColor = NeonGreen,
+                valueFontSize = 22.sp,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
@@ -273,6 +275,7 @@ private fun DashboardPortraitContent(
                 value = FormatUtils.formatSpeed(liveState.maxSpeedKmh),
                 unit = "km/h",
                 accentColor = NeonRed,
+                valueFontSize = 22.sp,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
@@ -283,6 +286,7 @@ private fun DashboardPortraitContent(
                 value = FormatUtils.formatSpeed(liveState.avgSpeedKmh),
                 unit = "km/h",
                 accentColor = NeonAmber,
+                valueFontSize = 22.sp,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
@@ -423,37 +427,50 @@ private fun DashboardLandscapeContent(
                 )
             }
 
-            // Columna 3 (Derecha): 4 Tarjetas de telemetría + Botón de Iniciar/Detener al alcance del pulgar
+            // Columna 3 (Derecha): 4 Tarjetas de telemetría expandidas verticalmente + Botón de Iniciar/Detener
             Column(
                 modifier = Modifier
                     .weight(1.15f)
                     .fillMaxHeight(),
-                verticalArrangement = Arrangement.SpaceBetween
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         MetricCard(
                             title = "Distancia",
                             value = FormatUtils.formatDistanceKm(liveState.distanceMeters),
                             accentColor = NeonCyan,
-                            modifier = Modifier.weight(1f)
+                            valueFontSize = 24.sp,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
                         )
 
                         MetricCard(
                             title = "Tiempo",
                             value = FormatUtils.formatDuration(liveState.elapsedSeconds),
                             accentColor = NeonGreen,
-                            modifier = Modifier.weight(1f)
+                            valueFontSize = 24.sp,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
                         )
                     }
 
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         MetricCard(
@@ -461,7 +478,10 @@ private fun DashboardLandscapeContent(
                             value = FormatUtils.formatSpeed(liveState.maxSpeedKmh),
                             unit = "km/h",
                             accentColor = NeonRed,
-                            modifier = Modifier.weight(1f)
+                            valueFontSize = 24.sp,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
                         )
 
                         MetricCard(
@@ -469,7 +489,10 @@ private fun DashboardLandscapeContent(
                             value = FormatUtils.formatSpeed(liveState.avgSpeedKmh),
                             unit = "km/h",
                             accentColor = NeonAmber,
-                            modifier = Modifier.weight(1f)
+                            valueFontSize = 24.sp,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
                         )
                     }
                 }

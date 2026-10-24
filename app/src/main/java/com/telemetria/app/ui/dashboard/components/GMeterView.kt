@@ -5,11 +5,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.telemetria.app.ui.theme.CockpitBorder
@@ -48,14 +49,15 @@ fun GMeterView(
             .fillMaxWidth()
             .background(CockpitCardBg, RoundedCornerShape(14.dp))
             .border(1.dp, CockpitBorder, RoundedCornerShape(14.dp))
-            .padding(vertical = 10.dp, horizontal = 12.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
+            // Header Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -76,19 +78,21 @@ fun GMeterView(
                 )
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceEvenly
+            // Diagrama circular de Kamm adaptativo al espacio disponible
+            BoxWithConstraints(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                contentAlignment = Alignment.Center
             ) {
-                // Diagrama circular de Kamm (Círculo de tracción / fuerzas G)
+                val diameter = minOf(maxWidth, maxHeight).coerceAtLeast(20.dp)
+
                 Canvas(
-                    modifier = Modifier.size(92.dp)
+                    modifier = Modifier.size(diameter)
                 ) {
                     val center = Offset(size.width / 2f, size.height / 2f)
-                    val maxRadius = size.width / 2f - 4.dp.toPx()
+                    val maxRadius = (size.width / 2f - 4.dp.toPx()).coerceAtLeast(4f)
 
                     val r05 = maxRadius * (0.5f / maxScaleG)
                     val r10 = maxRadius * (1.0f / maxScaleG)
@@ -107,45 +111,50 @@ fun GMeterView(
                     val dotX = center.x + clampedLat * maxRadius
                     val dotY = center.y - clampedLong * maxRadius
 
-                    drawCircle(color = NeonCyan.copy(alpha = 0.35f), radius = 9.dp.toPx(), center = Offset(dotX, dotY))
-                    drawCircle(color = NeonCyan, radius = 4.5.dp.toPx(), center = Offset(dotX, dotY))
+                    val dotRadius = (diameter.toPx() * 0.05f).coerceIn(3.dp.toPx(), 7.dp.toPx())
+                    val haloRadius = dotRadius * 2f
+
+                    drawCircle(color = NeonCyan.copy(alpha = 0.35f), radius = haloRadius, center = Offset(dotX, dotY))
+                    drawCircle(color = NeonCyan, radius = dotRadius, center = Offset(dotX, dotY))
+                }
+            }
+
+            // Lecturas numéricas horizontales debajo del círculo: G Lateral a la izq, G Longitudinal a la der
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "G LATERAL",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextSecondary
+                    )
+                    Text(
+                        text = String.format(Locale.US, "%+.2f G", lateralG),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        color = if (lateralG >= 0f) NeonCyan else NeonAmber
+                    )
                 }
 
-                // Lecturas numéricas
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Column {
-                        Text(
-                            text = "G LATERAL (CURVA)",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextSecondary
-                        )
-                        Text(
-                            text = String.format(Locale.US, "%+.2f G", lateralG),
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace,
-                            color = if (lateralG >= 0f) NeonCyan else NeonAmber
-                        )
-                    }
-
-                    Column {
-                        Text(
-                            text = "G LONGITUDINAL (ACEL/FRENO)",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextSecondary
-                        )
-                        Text(
-                            text = String.format(Locale.US, "%+.2f G", longitudinalG),
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace,
-                            color = if (longitudinalG >= 0f) NeonGreen else NeonRed
-                        )
-                    }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "G LONGITUDINAL",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextSecondary
+                    )
+                    Text(
+                        text = String.format(Locale.US, "%+.2f G", longitudinalG),
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        color = if (longitudinalG >= 0f) NeonGreen else NeonRed
+                    )
                 }
             }
         }
