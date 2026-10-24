@@ -48,10 +48,12 @@ fun GMeterView(
             .fillMaxWidth()
             .background(CockpitCardBg, RoundedCornerShape(14.dp))
             .border(1.dp, CockpitBorder, RoundedCornerShape(14.dp))
-            .padding(vertical = 10.dp, horizontal = 12.dp)
+            .padding(vertical = 10.dp, horizontal = 12.dp),
+        contentAlignment = Alignment.Center
     ) {
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

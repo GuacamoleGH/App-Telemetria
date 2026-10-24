@@ -1,12 +1,15 @@
 package com.telemetria.app.ui.dashboard
 
+import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,10 +40,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.telemetria.app.core.model.SessionStatus
+import com.telemetria.app.core.session.SessionLiveState
 import com.telemetria.app.core.util.FormatUtils
 import com.telemetria.app.ui.dashboard.components.CameraPreviewView
 import com.telemetria.app.ui.dashboard.components.GMeterView
@@ -69,6 +76,9 @@ fun DashboardScreen(
     val obdConnectionState by viewModel.obdConnectionState.collectAsState()
     val discoveredBleDevices by viewModel.discoveredBleDevices.collectAsState()
 
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
     // Diálogo de conexión OBD-II BLE
     if (isObdDialogVisible) {
         ObdConnectDialog(
@@ -85,283 +95,514 @@ fun DashboardScreen(
     Scaffold(
         containerColor = CockpitBlack,
         bottomBar = {
-            Surface(
-                color = CockpitBlack,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-            ) {
-                Box(
+            // En Portrait, la barra de control inferior se ancla abajo con navigationBarsPadding
+            if (!isLandscape) {
+                Surface(
+                    color = CockpitBlack,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .navigationBarsPadding()
                 ) {
-                    when (liveState.status) {
-                        SessionStatus.COMPLETED -> {
-                            Button(
-                                onClick = { viewModel.onStartClicked() },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(52.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = NeonGreen,
-                                    contentColor = CockpitBlack
-                                ),
-                                shape = RoundedCornerShape(14.dp)
-                            ) {
-                                Icon(Icons.Default.PlayArrow, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = if (isVideoEnabled) "INICIAR VÍDEO + TELEMETRÍA" else "INICIAR TELEMETRÍA",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                        SessionStatus.ACTIVE -> {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Button(
-                                    onClick = { viewModel.onPauseClicked() },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(56.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = NeonAmber,
-                                        contentColor = CockpitBlack
-                                    ),
-                                    shape = RoundedCornerShape(14.dp)
-                                ) {
-                                    Icon(Icons.Default.Pause, contentDescription = null)
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("PAUSAR", fontWeight = FontWeight.Bold)
-                                }
-
-                                Button(
-                                    onClick = {
-                                        viewModel.onStopClicked { saved ->
-                                            onSessionFinished(saved.id)
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(56.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = NeonRed,
-                                        contentColor = Color.White
-                                    ),
-                                    shape = RoundedCornerShape(14.dp)
-                                ) {
-                                    Icon(Icons.Default.Stop, contentDescription = null)
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("FINALIZAR", fontWeight = FontWeight.Bold)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                    ) {
+                        SessionControlButtons(
+                            status = liveState.status,
+                            isVideoEnabled = isVideoEnabled,
+                            buttonHeight = 52.dp,
+                            onStart = { viewModel.onStartClicked() },
+                            onPause = { viewModel.onPauseClicked() },
+                            onResume = { viewModel.onResumeClicked() },
+                            onStop = {
+                                viewModel.onStopClicked { saved ->
+                                    onSessionFinished(saved.id)
                                 }
                             }
-                        }
-                        SessionStatus.PAUSED -> {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Button(
-                                    onClick = { viewModel.onResumeClicked() },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(56.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = NeonGreen,
-                                        contentColor = CockpitBlack
-                                    ),
-                                    shape = RoundedCornerShape(14.dp)
-                                ) {
-                                    Icon(Icons.Default.PlayArrow, contentDescription = null)
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("REANUDAR", fontWeight = FontWeight.Bold)
-                                }
-
-                                Button(
-                                    onClick = {
-                                        viewModel.onStopClicked { saved ->
-                                            onSessionFinished(saved.id)
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(56.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = NeonRed,
-                                        contentColor = Color.White
-                                    ),
-                                    shape = RoundedCornerShape(14.dp)
-                                ) {
-                                    Icon(Icons.Default.Stop, contentDescription = null)
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("FINALIZAR", fontWeight = FontWeight.Bold)
-                                }
-                            }
-                        }
+                        )
                     }
                 }
             }
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .statusBarsPadding()
-                .padding(horizontal = 14.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        if (isLandscape) {
+            DashboardLandscapeContent(
+                liveState = liveState,
+                isVideoEnabled = isVideoEnabled,
+                viewModel = viewModel,
+                onNavigateToHistory = onNavigateToHistory,
+                onSessionFinished = onSessionFinished
+            )
+        } else {
+            DashboardPortraitContent(
+                innerPadding = innerPadding,
+                liveState = liveState,
+                isVideoEnabled = isVideoEnabled,
+                viewModel = viewModel,
+                onNavigateToHistory = onNavigateToHistory
+            )
+        }
+    }
+}
+
+@Composable
+private fun DashboardPortraitContent(
+    innerPadding: PaddingValues,
+    liveState: SessionLiveState,
+    isVideoEnabled: Boolean,
+    viewModel: DashboardViewModel,
+    onNavigateToHistory: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding)
+            .statusBarsPadding()
+            .padding(horizontal = 14.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Header
+        DashboardHeaderRow(
+            liveState = liveState,
+            isVideoEnabled = isVideoEnabled,
+            onObdClick = { viewModel.showObdDialog() },
+            onToggleVideo = { viewModel.toggleVideoEnabled() },
+            onCalibrate = { viewModel.onCalibrateSensorsClicked() },
+            onNavigateToHistory = onNavigateToHistory
+        )
+
+        // Visor de Cámara CameraX
+        AnimatedVisibility(visible = isVideoEnabled) {
+            CameraPreviewView(
+                videoRecordingManager = viewModel.videoRecordingManager,
+                isRecording = liveState.isVideoRecording,
+                videoDurationSec = liveState.videoDurationSec,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(105.dp)
+            )
+        }
+
+        // Tacómetro estilo MyChron 5
+        RpmBar(rpm = liveState.engineRpm)
+
+        // Velocímetro Central
+        SpeedGauge(
+            speedKmh = liveState.currentSpeedKmh,
+            isGpsValid = liveState.gpsFix
+        )
+
+        // G-Meter Dinámico
+        GMeterView(
+            lateralG = liveState.lateralG,
+            longitudinalG = liveState.longitudinalG,
+            gpsDerivedLongG = liveState.gpsDerivedLongitudinalG,
+            isCalibrated = liveState.isSensorCalibrated
+        )
+
+        // Fila 1 de Métricas: Distancia y Tiempo
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Header: Status indicators + Controles
+            MetricCard(
+                title = "Distancia",
+                value = FormatUtils.formatDistanceKm(liveState.distanceMeters),
+                accentColor = NeonCyan,
+                modifier = Modifier.weight(1f)
+            )
+
+            MetricCard(
+                title = "Tiempo",
+                value = FormatUtils.formatDuration(liveState.elapsedSeconds),
+                accentColor = NeonGreen,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // Fila 2 de Métricas: Vel. Máxima y Vel. Media
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            MetricCard(
+                title = "Vel. Máxima",
+                value = FormatUtils.formatSpeed(liveState.maxSpeedKmh),
+                unit = "km/h",
+                accentColor = NeonRed,
+                modifier = Modifier.weight(1f)
+            )
+
+            MetricCard(
+                title = "Vel. Media",
+                value = FormatUtils.formatSpeed(liveState.avgSpeedKmh),
+                unit = "km/h",
+                accentColor = NeonAmber,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // Grid de Métricas de Motor OBD
+        if (liveState.isObdConnected) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                StatusIndicatorRow(
-                    gpsFix = liveState.gpsFix,
-                    gpsAccuracyMeters = liveState.gpsAccuracyMeters,
-                    sampleRateHz = liveState.sampleRateHz,
-                    obdConnected = liveState.isObdConnected,
-                    obdHz = liveState.obdRealHz,
-                    onObdClick = { viewModel.showObdDialog() }
+                MetricCard(
+                    title = "Refrigerante",
+                    value = liveState.coolantTempC?.let { "$it°C" } ?: "--",
+                    accentColor = if ((liveState.coolantTempC ?: 0) > 105) NeonRed else NeonCyan,
+                    modifier = Modifier.weight(1f)
                 )
 
-                Row {
-                    // Botón OBD Bluetooth
-                    IconButton(onClick = { viewModel.showObdDialog() }) {
-                        Icon(
-                            imageVector = Icons.Default.Bluetooth,
-                            contentDescription = "Conectar Veepeak OBD-II",
-                            tint = if (liveState.isObdConnected) NeonCyan else TextMuted
-                        )
-                    }
+                MetricCard(
+                    title = "Pedal Acel.",
+                    value = liveState.throttlePercent?.let { "${it.toInt()}%" } ?: "--",
+                    accentColor = NeonGreen,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
 
-                    // Toggle Vídeo CameraX
-                    IconButton(onClick = { viewModel.toggleVideoEnabled() }) {
-                        Icon(
-                            imageVector = if (isVideoEnabled) Icons.Default.Videocam else Icons.Default.VideocamOff,
-                            contentDescription = "Activar / Desactivar Grabación de Vídeo",
-                            tint = if (isVideoEnabled) NeonCyan else TextMuted
-                        )
-                    }
+@Composable
+private fun DashboardLandscapeContent(
+    liveState: SessionLiveState,
+    isVideoEnabled: Boolean,
+    viewModel: DashboardViewModel,
+    onNavigateToHistory: () -> Unit,
+    onSessionFinished: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(horizontal = 14.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Cabecera superior completa a todo lo ancho
+        DashboardHeaderRow(
+            liveState = liveState,
+            isVideoEnabled = isVideoEnabled,
+            onObdClick = { viewModel.showObdDialog() },
+            onToggleVideo = { viewModel.toggleVideoEnabled() },
+            onCalibrate = { viewModel.onCalibrateSensorsClicked() },
+            onNavigateToHistory = onNavigateToHistory
+        )
 
-                    // Calibración de orientación en soporte
-                    IconButton(
-                        onClick = { viewModel.onCalibrateSensorsClicked() },
-                        enabled = !liveState.isCalibrating
+        // Tres columnas optimizadas para orientación horizontal (Cockpit Mode)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Columna 1 (Izquierda): Tacómetro + Velocímetro principal (+ datos OBD)
+            Column(
+                modifier = Modifier
+                    .weight(1.08f)
+                    .fillMaxHeight(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                RpmBar(rpm = liveState.engineRpm)
+
+                SpeedGauge(
+                    speedKmh = liveState.currentSpeedKmh,
+                    isGpsValid = liveState.gpsFix,
+                    modifier = Modifier.weight(1f)
+                )
+
+                if (liveState.isObdConnected) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.ScreenRotation,
-                            contentDescription = "Calibrar posición de sensores",
-                            tint = if (liveState.isCalibrating) NeonAmber else if (liveState.isSensorCalibrated) NeonGreen else TextPrimary
+                        MetricCard(
+                            title = "Refrigerante",
+                            value = liveState.coolantTempC?.let { "$it°C" } ?: "--",
+                            accentColor = if ((liveState.coolantTempC ?: 0) > 105) NeonRed else NeonCyan,
+                            modifier = Modifier.weight(1f)
                         )
-                    }
 
-                    // Historial
-                    IconButton(onClick = onNavigateToHistory) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = "Historial de Sesiones",
-                            tint = NeonCyan
+                        MetricCard(
+                            title = "Pedal Acel.",
+                            value = liveState.throttlePercent?.let { "${it.toInt()}%" } ?: "--",
+                            accentColor = NeonGreen,
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
             }
 
-            // Visor de Cámara CameraX
-            AnimatedVisibility(visible = isVideoEnabled) {
-                CameraPreviewView(
-                    videoRecordingManager = viewModel.videoRecordingManager,
-                    isRecording = liveState.isVideoRecording,
-                    videoDurationSec = liveState.videoDurationSec,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(105.dp)
-                )
-            }
-
-            // Tacómetro estilo MyChron 5 (conectado a RPM reales de OBD)
-            RpmBar(rpm = liveState.engineRpm)
-
-            // Velocímetro Central
-            SpeedGauge(
-                speedKmh = liveState.currentSpeedKmh,
-                isGpsValid = liveState.gpsFix
-            )
-
-            // G-Meter Dinámico
-            GMeterView(
-                lateralG = liveState.lateralG,
-                longitudinalG = liveState.longitudinalG,
-                gpsDerivedLongG = liveState.gpsDerivedLongitudinalG,
-                isCalibrated = liveState.isSensorCalibrated
-            )
-
-            // Fila 1 de Métricas: Distancia y Tiempo
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            // Columna 2 (Centro): Cámara (si está activa) + G-Meter (círculo de tracción Kamm)
+            Column(
+                modifier = Modifier
+                    .weight(1.02f)
+                    .fillMaxHeight(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                MetricCard(
-                    title = "Distancia",
-                    value = FormatUtils.formatDistanceKm(liveState.distanceMeters),
-                    accentColor = NeonCyan,
-                    modifier = Modifier.weight(1f)
-                )
+                if (isVideoEnabled) {
+                    CameraPreviewView(
+                        videoRecordingManager = viewModel.videoRecordingManager,
+                        isRecording = liveState.isVideoRecording,
+                        videoDurationSec = liveState.videoDurationSec,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(115.dp)
+                    )
+                }
 
-                MetricCard(
-                    title = "Tiempo",
-                    value = FormatUtils.formatDuration(liveState.elapsedSeconds),
-                    accentColor = NeonGreen,
+                GMeterView(
+                    lateralG = liveState.lateralG,
+                    longitudinalG = liveState.longitudinalG,
+                    gpsDerivedLongG = liveState.gpsDerivedLongitudinalG,
+                    isCalibrated = liveState.isSensorCalibrated,
                     modifier = Modifier.weight(1f)
                 )
             }
 
-            // Fila 2 de Métricas: Vel. Máxima y Vel. Media (subida compacta)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            // Columna 3 (Derecha): 4 Tarjetas de telemetría + Botón de Iniciar/Detener al alcance del pulgar
+            Column(
+                modifier = Modifier
+                    .weight(1.15f)
+                    .fillMaxHeight(),
+                verticalArrangement = Arrangement.SpaceBetween
             ) {
-                MetricCard(
-                    title = "Vel. Máxima",
-                    value = FormatUtils.formatSpeed(liveState.maxSpeedKmh),
-                    unit = "km/h",
-                    accentColor = NeonRed,
-                    modifier = Modifier.weight(1f)
-                )
-
-                MetricCard(
-                    title = "Vel. Media",
-                    value = FormatUtils.formatSpeed(liveState.avgSpeedKmh),
-                    unit = "km/h",
-                    accentColor = NeonAmber,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            // Grid de Métricas de Motor OBD (si hay conexión con la ECU)
-            if (liveState.isObdConnected) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    MetricCard(
-                        title = "Refrigerante",
-                        value = liveState.coolantTempC?.let { "$it°C" } ?: "--",
-                        accentColor = if ((liveState.coolantTempC ?: 0) > 105) NeonRed else NeonCyan,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        MetricCard(
+                            title = "Distancia",
+                            value = FormatUtils.formatDistanceKm(liveState.distanceMeters),
+                            accentColor = NeonCyan,
+                            modifier = Modifier.weight(1f)
+                        )
 
-                    MetricCard(
-                        title = "Pedal Acel.",
-                        value = liveState.throttlePercent?.let { "${it.toInt()}%" } ?: "--",
-                        accentColor = NeonGreen,
-                        modifier = Modifier.weight(1f)
-                    )
+                        MetricCard(
+                            title = "Tiempo",
+                            value = FormatUtils.formatDuration(liveState.elapsedSeconds),
+                            accentColor = NeonGreen,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        MetricCard(
+                            title = "Vel. Máx",
+                            value = FormatUtils.formatSpeed(liveState.maxSpeedKmh),
+                            unit = "km/h",
+                            accentColor = NeonRed,
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        MetricCard(
+                            title = "Vel. Med",
+                            value = FormatUtils.formatSpeed(liveState.avgSpeedKmh),
+                            unit = "km/h",
+                            accentColor = NeonAmber,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                SessionControlButtons(
+                    status = liveState.status,
+                    isVideoEnabled = isVideoEnabled,
+                    buttonHeight = 44.dp,
+                    fontSize = 13.sp,
+                    onStart = { viewModel.onStartClicked() },
+                    onPause = { viewModel.onPauseClicked() },
+                    onResume = { viewModel.onResumeClicked() },
+                    onStop = {
+                        viewModel.onStopClicked { saved ->
+                            onSessionFinished(saved.id)
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DashboardHeaderRow(
+    liveState: SessionLiveState,
+    isVideoEnabled: Boolean,
+    onObdClick: () -> Unit,
+    onToggleVideo: () -> Unit,
+    onCalibrate: () -> Unit,
+    onNavigateToHistory: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        StatusIndicatorRow(
+            gpsFix = liveState.gpsFix,
+            gpsAccuracyMeters = liveState.gpsAccuracyMeters,
+            sampleRateHz = liveState.sampleRateHz,
+            obdConnected = liveState.isObdConnected,
+            obdHz = liveState.obdRealHz,
+            onObdClick = onObdClick
+        )
+
+        Row {
+            IconButton(onClick = onObdClick) {
+                Icon(
+                    imageVector = Icons.Default.Bluetooth,
+                    contentDescription = "Conectar Veepeak OBD-II",
+                    tint = if (liveState.isObdConnected) NeonCyan else TextMuted
+                )
+            }
+
+            IconButton(onClick = onToggleVideo) {
+                Icon(
+                    imageVector = if (isVideoEnabled) Icons.Default.Videocam else Icons.Default.VideocamOff,
+                    contentDescription = "Activar / Desactivar Grabación de Vídeo",
+                    tint = if (isVideoEnabled) NeonCyan else TextMuted
+                )
+            }
+
+            IconButton(
+                onClick = onCalibrate,
+                enabled = !liveState.isCalibrating
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ScreenRotation,
+                    contentDescription = "Calibrar posición de sensores",
+                    tint = if (liveState.isCalibrating) NeonAmber else if (liveState.isSensorCalibrated) NeonGreen else TextPrimary
+                )
+            }
+
+            IconButton(onClick = onNavigateToHistory) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = "Historial de Sesiones",
+                    tint = NeonCyan
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SessionControlButtons(
+    status: SessionStatus,
+    isVideoEnabled: Boolean,
+    buttonHeight: Dp = 52.dp,
+    fontSize: TextUnit = 15.sp,
+    onStart: () -> Unit,
+    onPause: () -> Unit,
+    onResume: () -> Unit,
+    onStop: () -> Unit
+) {
+    when (status) {
+        SessionStatus.COMPLETED -> {
+            Button(
+                onClick = onStart,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(buttonHeight),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = NeonGreen,
+                    contentColor = CockpitBlack
+                ),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Icon(Icons.Default.PlayArrow, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (isVideoEnabled) "INICIAR VÍDEO + TELEMETRÍA" else "INICIAR TELEMETRÍA",
+                    fontSize = fontSize,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+            }
+        }
+        SessionStatus.ACTIVE -> {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Button(
+                    onClick = onPause,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(buttonHeight),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = NeonAmber,
+                        contentColor = CockpitBlack
+                    ),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Icon(Icons.Default.Pause, contentDescription = null)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("PAUSAR", fontSize = fontSize, fontWeight = FontWeight.Bold, maxLines = 1)
+                }
+
+                Button(
+                    onClick = onStop,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(buttonHeight),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = NeonRed,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Icon(Icons.Default.Stop, contentDescription = null)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("FINALIZAR", fontSize = fontSize, fontWeight = FontWeight.Bold, maxLines = 1)
+                }
+            }
+        }
+        SessionStatus.PAUSED -> {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Button(
+                    onClick = onResume,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(buttonHeight),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = NeonGreen,
+                        contentColor = CockpitBlack
+                    ),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Icon(Icons.Default.PlayArrow, contentDescription = null)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("REANUDAR", fontSize = fontSize, fontWeight = FontWeight.Bold, maxLines = 1)
+                }
+
+                Button(
+                    onClick = onStop,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(buttonHeight),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = NeonRed,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Icon(Icons.Default.Stop, contentDescription = null)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("FINALIZAR", fontSize = fontSize, fontWeight = FontWeight.Bold, maxLines = 1)
                 }
             }
         }
