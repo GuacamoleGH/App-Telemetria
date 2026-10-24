@@ -213,7 +213,7 @@ fun DashboardScreen(
                 .padding(innerPadding)
                 .statusBarsPadding()
                 .padding(horizontal = 14.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Header: Status indicators + Controles
             Row(
@@ -301,91 +301,53 @@ fun DashboardScreen(
                 isCalibrated = liveState.isSensorCalibrated
             )
 
-            // Métricas: adaptativas según si la cámara está encendida o apagada
-            if (isVideoEnabled) {
-                // Modo Cámara: 4 métricas en 1 sola fila para que todo quepa al 100% sin scroll
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    MetricCard(
-                        title = "Distancia",
-                        value = FormatUtils.formatDistanceKm(liveState.distanceMeters),
-                        accentColor = NeonCyan,
-                        modifier = Modifier.weight(1f)
-                    )
+            // Fila 1 de Métricas: Distancia y Tiempo
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                MetricCard(
+                    title = "Distancia",
+                    value = FormatUtils.formatDistanceKm(liveState.distanceMeters),
+                    accentColor = NeonCyan,
+                    modifier = Modifier.weight(1f)
+                )
 
-                    MetricCard(
-                        title = "Tiempo",
-                        value = FormatUtils.formatDuration(liveState.elapsedSeconds),
-                        accentColor = NeonGreen,
-                        modifier = Modifier.weight(1f)
-                    )
+                MetricCard(
+                    title = "Tiempo",
+                    value = FormatUtils.formatDuration(liveState.elapsedSeconds),
+                    accentColor = NeonGreen,
+                    modifier = Modifier.weight(1f)
+                )
+            }
 
-                    MetricCard(
-                        title = "Vel. Máx",
-                        value = FormatUtils.formatSpeed(liveState.maxSpeedKmh),
-                        unit = "km/h",
-                        accentColor = NeonRed,
-                        modifier = Modifier.weight(1f)
-                    )
+            // Fila 2 de Métricas: Vel. Máxima y Vel. Media (subida compacta)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                MetricCard(
+                    title = "Vel. Máxima",
+                    value = FormatUtils.formatSpeed(liveState.maxSpeedKmh),
+                    unit = "km/h",
+                    accentColor = NeonRed,
+                    modifier = Modifier.weight(1f)
+                )
 
-                    MetricCard(
-                        title = "Vel. Med",
-                        value = FormatUtils.formatSpeed(liveState.avgSpeedKmh),
-                        unit = "km/h",
-                        accentColor = NeonAmber,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            } else {
-                // Modo Cockpit puro (cámara apagada): 2 filas que llenan toda la pantalla con números grandes
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    MetricCard(
-                        title = "Distancia",
-                        value = FormatUtils.formatDistanceKm(liveState.distanceMeters),
-                        accentColor = NeonCyan,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    MetricCard(
-                        title = "Tiempo",
-                        value = FormatUtils.formatDuration(liveState.elapsedSeconds),
-                        accentColor = NeonGreen,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    MetricCard(
-                        title = "Vel. Máxima",
-                        value = FormatUtils.formatSpeed(liveState.maxSpeedKmh),
-                        unit = "km/h",
-                        accentColor = NeonRed,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    MetricCard(
-                        title = "Vel. Media",
-                        value = FormatUtils.formatSpeed(liveState.avgSpeedKmh),
-                        unit = "km/h",
-                        accentColor = NeonAmber,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                MetricCard(
+                    title = "Vel. Media",
+                    value = FormatUtils.formatSpeed(liveState.avgSpeedKmh),
+                    unit = "km/h",
+                    accentColor = NeonAmber,
+                    modifier = Modifier.weight(1f)
+                )
             }
 
             // Grid de Métricas de Motor OBD (si hay conexión con la ECU)
             if (liveState.isObdConnected) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     MetricCard(
                         title = "Refrigerante",
