@@ -1,0 +1,220 @@
+package com.telemetria.app.ui.history
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.telemetria.app.core.util.FormatUtils
+import com.telemetria.app.ui.dashboard.components.MetricCard
+import com.telemetria.app.ui.history.components.MapViewOsm
+import com.telemetria.app.ui.history.components.SpeedElevationGraph
+import com.telemetria.app.ui.theme.CockpitBlack
+import com.telemetria.app.ui.theme.CockpitDarkSurface
+import com.telemetria.app.ui.theme.NeonAmber
+import com.telemetria.app.ui.theme.NeonCyan
+import com.telemetria.app.ui.theme.NeonGreen
+import com.telemetria.app.ui.theme.NeonRed
+import com.telemetria.app.ui.theme.TextPrimary
+import kotlinx.coroutines.flow.collectLatest
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SessionDetailScreen(
+    sessionId: String,
+    viewModel: HistoryViewModel,
+    onBack: () -> Unit
+) {
+    val session by viewModel.selectedSession.collectAsState()
+    val points by viewModel.selectedPoints.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scrollState = rememberScrollState()
+
+    LaunchedEffect(sessionId) {
+        viewModel.loadSessionDetails(sessionId)
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.exportMessage.collectLatest { msg ->
+            snackbarHostState.showSnackbar(msg)
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = session?.title ?: "DETALLE DE SESIÓN",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = NeonCyan
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = CockpitDarkSurface
+                )
+            )
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = CockpitBlack
+    ) { innerPadding ->
+        val currentSession = session
+        if (currentSession == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(text = "Cargando sesión...", color = TextPrimary)
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(16.dp)
+                    .verticalScroll(scrollState),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // Mapa interactivo Osmdroid con el track
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(240.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                ) {
+                    MapViewOsm(points = points)
+                }
+
+                // Grid de métricas consolidadas
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    MetricCard(
+                        title = "Distancia",
+                        value = FormatUtils.formatDistanceKm(currentSession.totalDistanceMeters),
+                        accentColor = NeonCyan,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    MetricCard(
+                        title = "Duración",
+                        value = FormatUtils.formatDuration(currentSession.durationSeconds),
+                        accentColor = NeonGreen,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    MetricCard(
+                        title = "Vel. Máxima",
+                        value = FormatUtils.formatSpeed(currentSession.maxSpeedKmh),
+                        unit = "km/h",
+                        accentColor = NeonRed,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    MetricCard(
+                        title = "Vel. Media",
+                        value = FormatUtils.formatSpeed(currentSession.avgSpeedKmh),
+                        unit = "km/h",
+                        accentColor = NeonAmber,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                // Gráfica de perfil de velocidad (Canvas nativo)
+                SpeedElevationGraph(points = points)
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Botones de Exportación
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Button(
+                        onClick = { viewModel.exportGpx(currentSession) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(50.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = CockpitDarkSurface,
+                            contentColor = NeonCyan
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.FileDownload, contentDescription = null)
+                        Spacer(modifier = Modifier.padding(start = 4.dp))
+                        Text("GPX (Strava)", fontWeight = FontWeight.Bold)
+                    }
+
+                    Button(
+                        onClick = { viewModel.exportCsv(currentSession) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(50.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = CockpitDarkSurface,
+                            contentColor = NeonGreen
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.FileDownload, contentDescription = null)
+                        Spacer(modifier = Modifier.padding(start = 4.dp))
+                        Text("CSV (RaceRender)", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
