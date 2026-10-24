@@ -243,7 +243,24 @@ fun SessionDetailScreen(
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // Botones de Exportación
+                // Botón principal de exportación en paquete ZIP (Vídeo + CSV + GPX + JSON + Doc)
+                Button(
+                    onClick = { viewModel.exportZip(currentSession) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = NeonGreen,
+                        contentColor = CockpitBlack
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.FileDownload, contentDescription = null)
+                    Spacer(modifier = Modifier.padding(start = 6.dp))
+                    Text("EXPORTAR PAQUETE ZIP (VÍDEO + DATOS)", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                }
+
+                // Botones de Exportación individual
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -252,7 +269,7 @@ fun SessionDetailScreen(
                         onClick = { viewModel.exportGpx(currentSession) },
                         modifier = Modifier
                             .weight(1f)
-                            .height(50.dp),
+                            .height(48.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = CockpitDarkSurface,
                             contentColor = NeonCyan
@@ -261,14 +278,14 @@ fun SessionDetailScreen(
                     ) {
                         Icon(Icons.Default.FileDownload, contentDescription = null)
                         Spacer(modifier = Modifier.padding(start = 4.dp))
-                        Text("GPX (Strava)", fontWeight = FontWeight.Bold)
+                        Text("GPX (Strava)", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
 
                     Button(
                         onClick = { viewModel.exportCsv(currentSession) },
                         modifier = Modifier
                             .weight(1f)
-                            .height(50.dp),
+                            .height(48.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = CockpitDarkSurface,
                             contentColor = NeonGreen
@@ -277,7 +294,7 @@ fun SessionDetailScreen(
                     ) {
                         Icon(Icons.Default.FileDownload, contentDescription = null)
                         Spacer(modifier = Modifier.padding(start = 4.dp))
-                        Text("CSV (RaceRender)", fontWeight = FontWeight.Bold)
+                        Text("CSV (RaceRender)", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                 }
             }

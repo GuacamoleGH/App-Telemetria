@@ -24,7 +24,6 @@ class StorageAndSyncTest {
 
     @Test
     fun videoSyncMetadata_computesOffsetCorrectly() {
-        val sessionStartMonoNanos = 10_000_000_000L // 10.0s monotónico
         val videoStartMonoNanos = 10_150_000_000L   // Vídeo inicia 150 ms después del botón
 
         val sample1MonoNanos = 10_100_000_000L     // Muestra tomada 50 ms ANTES de que el vídeo empezara
@@ -50,3 +49,4 @@ class StorageAndSyncTest {
         assertTrue(meta.isRecording)
     }
 }
+

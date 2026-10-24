@@ -29,3 +29,4 @@ object StorageSpaceHelper {
         return getAvailableSpaceBytes(directory) >= MINIMUM_FREE_SPACE_BYTES
     }
 }
+

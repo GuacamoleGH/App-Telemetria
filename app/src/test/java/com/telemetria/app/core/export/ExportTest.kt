@@ -79,7 +79,7 @@ class ExportTest {
         assertTrue(success)
         assertTrue(targetFile.exists())
         val content = targetFile.readText()
-        assertTrue(content.startsWith("timestamp_utc_ms,iso_time,monotonic_nanos,latitude,longitude,altitude_m,gps_speed_kmh"))
+        assertTrue(content.startsWith("time_offset_video_sec,time_offset_session_sec,timestamp_utc_ms"))
         val lines = content.lines()
         assertTrue("Lines count should be header + 2 points + empty line", lines.size >= 3)
         assertTrue(lines[1].contains("1700000000000"))

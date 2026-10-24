@@ -14,3 +14,4 @@ data class VideoSyncMetadata(
     val isRecording: Boolean = false,
     val durationSeconds: Long = 0L
 )
+

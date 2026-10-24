@@ -83,6 +83,31 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun exportZip(session: SessionEntity) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val points = _selectedPoints.value.ifEmpty {
+                db.telemetryPointDao().getPointsForSession(session.id)
+            }
+            val exportDir = getExportDirectory()
+            val zipFile = File(exportDir, "sesion_${session.id.take(8)}_bundle.zip")
+            val tempDir = File(getApplication<Application>().cacheDir, "zip_temp_${session.id.take(8)}")
+            
+            val success = com.telemetria.app.core.export.ZipSessionExporter.exportSessionToZip(
+                session = session,
+                points = points,
+                outputZipFile = zipFile,
+                tempDir = tempDir
+            )
+            withContext(Dispatchers.Main) {
+                if (success) {
+                    _exportMessage.emit("Paquete ZIP exportado en: ${zipFile.absolutePath}")
+                } else {
+                    _exportMessage.emit("Error empaquetando ZIP")
+                }
+            }
+        }
+    }
+
     fun deleteSession(sessionId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             db.telemetryPointDao().deletePointsForSession(sessionId)

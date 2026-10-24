@@ -1,0 +1,4 @@
+# Requisitos para render_telemetry_overlay.py en PC
+opencv-python>=4.8.0
+numpy>=1.24.0
+pillow>=10.0.0
