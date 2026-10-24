@@ -104,41 +104,63 @@ def interpolate_telemetry(data, current_time):
     }
 
 
-def draw_overlay(frame, tel_data, current_time_sec):
+def draw_overlay(frame, tel_data, current_time_sec, vehicle_config=None):
     """Dibuja el velocímetro, tacómetro y G-meter estilo deportivo sobre el frame de vídeo."""
     h, w, _ = frame.shape
+    config = vehicle_config or {}
+    max_rpm = config.get("max_rpm", 7500)
+    redline_rpm = config.get("redline_rpm", 6500)
+    shift_light_rpm = config.get("shift_light_rpm", 6200)
 
-    # 1. Tacómetro superior (luces de cambio estilo MyChron)
+    # 1. Tacómetro superior (luces de cambio y tacómetro estilo competición / MyChron 5)
     rpm = tel_data.get("rpm")
     if rpm is not None:
-        max_rpm = 7000
         active_ratio = min(1.0, max(0.0, rpm / max_rpm))
         bar_w = int(w * 0.5)
-        bar_h = 16
+        bar_h = 18
         bar_x = (w - bar_w) // 2
-        bar_y = 30
+        bar_y = 35
 
-        # Fondo
-        cv2.rectangle(frame, (bar_x - 4, bar_y - 4), (bar_x + bar_w + 4, bar_y + bar_h + 4), (20, 24, 30), -1)
+        is_shift = rpm >= shift_light_rpm
+        # Parpadeo rápido a 8 Hz cuando se alcanza el régimen de cambio (Shift Light Strobe)
+        flash_state = (int(current_time_sec * 8) % 2 == 0) if is_shift else False
 
-        segments = 20
+        # Fondo del tacómetro
+        bg_border_color = (0, 0, 255) if (is_shift and flash_state) else (50, 60, 75)
+        cv2.rectangle(frame, (bar_x - 6, bar_y - 6), (bar_x + bar_w + 6, bar_y + bar_h + 6), (16, 20, 26), -1)
+        cv2.rectangle(frame, (bar_x - 6, bar_y - 6), (bar_x + bar_w + 6, bar_y + bar_h + 6), bg_border_color, 1)
+
+        segments = 24
         active_segs = int(active_ratio * segments)
         seg_w = bar_w // segments
 
         for i in range(segments):
             sx = bar_x + i * seg_w
+            seg_rpm = ((i + 1) / segments) * max_rpm
+
             if i < active_segs:
-                if i < 12:
-                    color = (100, 230, 0) # Verde BGR
-                elif i < 16:
-                    color = (0, 200, 255) # Ámbar BGR
+                if is_shift and flash_state:
+                    # En régimen de corte/cambio, luces parpadean en blanco/magenta de competición
+                    color = (255, 100, 255) if i >= int(segments * 0.75) else (255, 255, 255)
+                elif seg_rpm < (redline_rpm * 0.75):
+                    color = (100, 240, 0) # Verde BGR
+                elif seg_rpm < redline_rpm:
+                    color = (0, 210, 255) # Ámbar BGR
                 else:
-                    color = (50, 50, 255) # Rojo BGR
+                    color = (40, 40, 255) # Rojo Redline BGR
             else:
-                color = (40, 50, 60)
+                color = (32, 40, 48)
             cv2.rectangle(frame, (sx + 2, bar_y), (sx + seg_w - 2, bar_y + bar_h), color, -1)
 
-        cv2.putText(frame, f"{rpm} RPM", (bar_x + bar_w + 14, bar_y + 14), cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 255), 1, cv2.LINE_AA)
+        # Texto de RPM y aviso SHIFT
+        rpm_str = f"{rpm} RPM"
+        cv2.putText(frame, rpm_str, (bar_x + bar_w + 14, bar_y + 15), cv2.FONT_HERSHEY_DUPLEX, 0.6, (255, 255, 255), 1, cv2.LINE_AA)
+
+        if is_shift and flash_state:
+            # Cartel "⚡ SHIFT" parpadeante
+            shift_text = "SHIFT!"
+            cv2.rectangle(frame, (bar_x - 70, bar_y - 3), (bar_x - 12, bar_y + bar_h + 3), (40, 40, 255), -1)
+            cv2.putText(frame, shift_text, (bar_x - 66, bar_y + 14), cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
 
     # 2. Panel inferior izquierdo: Velocímetro digital grande
     panel_w = 260
@@ -197,7 +219,7 @@ def draw_overlay(frame, tel_data, current_time_sec):
     cv2.putText(frame, time_str, (40, 50), cv2.FONT_HERSHEY_DUPLEX, 0.9, (240, 245, 250), 1, cv2.LINE_AA)
 
 
-def process_video(video_path, csv_path, output_path):
+def process_video(video_path, csv_path, output_path, vehicle_config=None):
     print(f"[INFO] Abriendo vídeo original: {video_path}")
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -210,6 +232,8 @@ def process_video(video_path, csv_path, output_path):
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
     print(f"[INFO] Resolución: {width}x{height} | FPS: {fps:.2f} | Frames totales: {total_frames}")
+    if vehicle_config:
+        print(f"[INFO] Configuración de vehículo: Max RPM={vehicle_config.get('max_rpm')}, Redline={vehicle_config.get('redline_rpm')}, Shift={vehicle_config.get('shift_light_rpm')}")
 
     tel_data = parse_telemetry_csv(csv_path)
     print(f"[INFO] Muestras de telemetría cargadas: {len(tel_data)}")
@@ -231,7 +255,7 @@ def process_video(video_path, csv_path, output_path):
 
         current_time_sec = frame_idx / fps
         interpolated = interpolate_telemetry(tel_data, current_time_sec)
-        draw_overlay(frame, interpolated, current_time_sec)
+        draw_overlay(frame, interpolated, current_time_sec, vehicle_config)
         writer.write(frame)
 
         frame_idx += 1
@@ -278,6 +302,9 @@ def main():
     parser.add_argument("--zip", help="Ruta al archivo .zip exportado por la app.")
     parser.add_argument("--dir", help="Ruta a la carpeta con los archivos de sesión extraídos.")
     parser.add_argument("--out", default="telemetria_overlay.mp4", help="Nombre del archivo MP4 de salida.")
+    parser.add_argument("--max-rpm", type=int, help="Override de RPM máximas para el tacómetro.")
+    parser.add_argument("--redline-rpm", type=int, help="Override de RPM donde empieza la línea roja.")
+    parser.add_argument("--shift-rpm", type=int, help="Override de RPM para las luces de cambio (shift light).")
     args = parser.parse_args()
 
     if not args.zip and not args.dir:
@@ -301,6 +328,7 @@ def main():
 
     video_file = os.path.join(work_dir, "video.mp4")
     csv_file = os.path.join(work_dir, "telemetria.csv")
+    json_file = os.path.join(work_dir, "session.json")
 
     if not os.path.exists(video_file):
         print(f"[ERROR] No se encontró 'video.mp4' en {work_dir}")
@@ -309,8 +337,34 @@ def main():
         print(f"[ERROR] No se encontró 'telemetria.csv' en {work_dir}")
         sys.exit(1)
 
+    # Cargar configuración del vehículo desde session.json si está disponible
+    vehicle_config = {
+        "max_rpm": 7500,
+        "redline_rpm": 6500,
+        "shift_light_rpm": 6200
+    }
+    if os.path.exists(json_file):
+        try:
+            with open(json_file, "r", encoding="utf-8") as jf:
+                session_meta = json.load(jf)
+                if "vehicle_config" in session_meta:
+                    vc = session_meta["vehicle_config"]
+                    vehicle_config["max_rpm"] = vc.get("max_rpm", vehicle_config["max_rpm"])
+                    vehicle_config["redline_rpm"] = vc.get("redline_rpm", vehicle_config["redline_rpm"])
+                    vehicle_config["shift_light_rpm"] = vc.get("shift_light_rpm", vehicle_config["shift_light_rpm"])
+        except Exception as e:
+            print(f"[WARN] Error leyendo vehicle_config de session.json: {e}")
+
+    # Sobrescribir con flags CLI si el usuario los especificó
+    if args.max_rpm:
+        vehicle_config["max_rpm"] = args.max_rpm
+    if args.redline_rpm:
+        vehicle_config["redline_rpm"] = args.redline_rpm
+    if args.shift_rpm:
+        vehicle_config["shift_light_rpm"] = args.shift_rpm
+
     try:
-        process_video(video_file, csv_file, os.path.abspath(args.out))
+        process_video(video_file, csv_file, os.path.abspath(args.out), vehicle_config)
     finally:
         if clean_temp:
             shutil.rmtree(work_dir, ignore_errors=True)

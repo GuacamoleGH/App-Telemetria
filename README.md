@@ -3,7 +3,8 @@
 App nativa para Android (Kotlin + Jetpack Compose) de telemetría automovilística de alto rendimiento diseñada para carretera y circuito:
 
 - **Instrumentación estilo MyChron 5**: Pantalla de alto contraste (negro OLED, tacómetro por LEDs de color con shift light, velocímetro digital central, fuerzas G laterales y longitudinales, pedales y estado de enlace).
-- **Registro estilo Strava**: Grabación continua de salidas en segundo plano, cálculo de distanciaQs geodésicas en tiempo real, mapa offline y consulta de historial sin conexión ni cuentas.
+- **Ajustes de Tacómetro y Shift Lights de Competición**: Calibración personalizada del régimen de giro de tu vehículo (RPM máximas, inicio de línea roja / corte, y punto de activación del aviso de cambio estroboscópico tipo GT3 / F1 con badge parpadeante `⚡ SHIFT`). Se almacena en preferencias y se exporta a `session.json` para renderizar el tablero fiel a tu coche en el overlay del vídeo en PC.
+- **Registro estilo Strava**: Grabación continua de salidas en segundo plano, cálculo de distancias geodésicas en tiempo real, mapa offline y consulta de historial sin conexión ni cuentas.
 - **Vídeo con Telemetría Sincronizada estilo RaceRender**: Grabación de vídeo nítido (CameraX) con registro de marca de tiempo monotónica a nivel de hardware, exportación a ZIP (`video.mp4`, `telemetria.csv`, `ruta.gpx`, `session.json`) y script autónomo en Python + OpenCV para renderizar el overlay en PC sin coste de procesamiento en el móvil.
 - **Integración OBD-II Bluetooth Low Energy (Veepeak OBDCheck BLE)**: Conexión BLE directa (GATT), descubrimiento dinámico de características NOTIFY y WRITE, implementación completa del protocolo ELM327 y planificador de consulta adaptativa por prioridad (RPM y acelerador a máxima frecuencia, temperaturas y carga a baja frecuencia).
 - **100% Offline & Local**: Sin dependencias de servicios de pago, sin suscripciones, sin envío de datos a la nube.

@@ -7,9 +7,11 @@ import androidx.lifecycle.viewModelScope
 import com.telemetria.app.core.database.TelemetryDatabase
 import com.telemetria.app.core.location.TelemetryService
 import com.telemetria.app.core.model.Session
+import com.telemetria.app.core.model.VehicleConfig
 import com.telemetria.app.core.obd.ObdManager
 import com.telemetria.app.core.obd.model.ObdConnectionState
 import com.telemetria.app.core.obd.scanner.DiscoveredBleDevice
+import com.telemetria.app.core.preferences.VehiclePreferences
 import com.telemetria.app.core.session.SessionLiveState
 import com.telemetria.app.core.session.SessionManager
 import com.telemetria.app.core.video.CameraPermissionHelper
@@ -27,8 +29,10 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val sessionManager = SessionManager.getInstance(db)
     val videoRecordingManager = VideoRecordingManager(application)
     val obdManager = ObdManager.getInstance(application, sessionManager)
+    private val vehiclePreferences = VehiclePreferences.getInstance(application)
 
     val liveState: StateFlow<SessionLiveState> = sessionManager.liveState
+    val vehicleConfig: StateFlow<VehicleConfig> = vehiclePreferences.vehicleConfig
 
     private val _isVideoEnabled = MutableStateFlow(false)
     val isVideoEnabled: StateFlow<Boolean> = _isVideoEnabled.asStateFlow()
@@ -36,8 +40,23 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val _isObdDialogVisible = MutableStateFlow(false)
     val isObdDialogVisible: StateFlow<Boolean> = _isObdDialogVisible.asStateFlow()
 
+    private val _isSettingsDialogVisible = MutableStateFlow(false)
+    val isSettingsDialogVisible: StateFlow<Boolean> = _isSettingsDialogVisible.asStateFlow()
+
     val obdConnectionState: StateFlow<ObdConnectionState> = obdManager.connectionState
     val discoveredBleDevices: StateFlow<List<DiscoveredBleDevice>> = obdManager.discoveredDevices
+
+    fun showSettingsDialog() {
+        _isSettingsDialogVisible.value = true
+    }
+
+    fun dismissSettingsDialog() {
+        _isSettingsDialogVisible.value = false
+    }
+
+    fun saveVehicleConfig(config: VehicleConfig) {
+        vehiclePreferences.saveConfig(config)
+    }
 
     fun showObdDialog() {
         _isObdDialogVisible.value = true

@@ -92,11 +92,13 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
             val zipFile = File(exportDir, "sesion_${session.id.take(8)}_bundle.zip")
             val tempDir = File(getApplication<Application>().cacheDir, "zip_temp_${session.id.take(8)}")
             
+            val vehicleConfig = com.telemetria.app.core.preferences.VehiclePreferences.getInstance(getApplication()).vehicleConfig.value
             val success = com.telemetria.app.core.export.ZipSessionExporter.exportSessionToZip(
                 session = session,
                 points = points,
                 outputZipFile = zipFile,
-                tempDir = tempDir
+                tempDir = tempDir,
+                vehicleConfig = vehicleConfig
             )
             withContext(Dispatchers.Main) {
                 if (success) {

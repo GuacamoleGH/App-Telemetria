@@ -1,13 +1,15 @@
 package com.telemetria.app.core.export
 
 import com.telemetria.app.core.database.entity.SessionEntity
+import com.telemetria.app.core.model.VehicleConfig
 import com.telemetria.app.core.util.FormatUtils
 
 object SessionMetadataExporter {
 
     fun generateSessionJson(
         session: SessionEntity,
-        pointCount: Long
+        pointCount: Long,
+        vehicleConfig: VehicleConfig? = null
     ): String {
         val syncOffsetMs = if (session.videoStartMonotonicNanos != null && session.startMonotonicNanos > 0) {
             (session.videoStartMonotonicNanos - session.startMonotonicNanos) / 1_000_000L
@@ -16,6 +18,7 @@ object SessionMetadataExporter {
         }
 
         val hasVideo = session.videoFilePath != null
+        val config = vehicleConfig ?: VehicleConfig.DEFAULT
 
         return buildString {
             append("{\n")
@@ -34,6 +37,11 @@ object SessionMetadataExporter {
             append("    \"max_speed_kmh\": ${session.maxSpeedKmh},\n")
             append("    \"avg_speed_kmh\": ${session.avgSpeedKmh},\n")
             append("    \"point_count\": $pointCount\n")
+            append("  },\n")
+            append("  \"vehicle_config\": {\n")
+            append("    \"max_rpm\": ${config.maxRpm},\n")
+            append("    \"redline_rpm\": ${config.redlineRpm},\n")
+            append("    \"shift_light_rpm\": ${config.shiftLightRpm}\n")
             append("  },\n")
             append("  \"video_synchronization\": {\n")
             append("    \"has_video\": $hasVideo,\n")

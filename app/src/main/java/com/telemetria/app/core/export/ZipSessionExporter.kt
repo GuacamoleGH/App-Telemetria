@@ -2,6 +2,7 @@ package com.telemetria.app.core.export
 
 import com.telemetria.app.core.database.entity.SessionEntity
 import com.telemetria.app.core.database.entity.TelemetryPointEntity
+import com.telemetria.app.core.model.VehicleConfig
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.File
@@ -70,7 +71,8 @@ python render_telemetry_overlay.py --zip paquete_sesion.zip --out video_telemetr
         session: SessionEntity,
         points: List<TelemetryPointEntity>,
         outputZipFile: File,
-        tempDir: File
+        tempDir: File,
+        vehicleConfig: VehicleConfig? = null
     ): Boolean {
         return try {
             outputZipFile.parentFile?.mkdirs()
@@ -84,7 +86,7 @@ python render_telemetry_overlay.py --zip paquete_sesion.zip --out video_telemetr
             // Generar archivos auxiliares
             CsvExporter.exportToCsv(session, points, csvFile)
             GpxExporter.exportToGpx(session, points, gpxFile)
-            jsonFile.writeText(SessionMetadataExporter.generateSessionJson(session, points.size.toLong()), StandardCharsets.UTF_8)
+            jsonFile.writeText(SessionMetadataExporter.generateSessionJson(session, points.size.toLong(), vehicleConfig), StandardCharsets.UTF_8)
             readmeFile.writeText(README_CONTENT, StandardCharsets.UTF_8)
 
             // Empaquetar todo en el ZIP

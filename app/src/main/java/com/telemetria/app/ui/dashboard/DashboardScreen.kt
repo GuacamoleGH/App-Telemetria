@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.VideocamOff
 import androidx.compose.material3.Button
@@ -47,6 +49,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.telemetria.app.core.model.SessionStatus
+import com.telemetria.app.core.model.VehicleConfig
 import com.telemetria.app.core.session.SessionLiveState
 import com.telemetria.app.core.util.FormatUtils
 import com.telemetria.app.ui.dashboard.components.CameraPreviewView
@@ -56,6 +59,7 @@ import com.telemetria.app.ui.dashboard.components.ObdConnectDialog
 import com.telemetria.app.ui.dashboard.components.RpmBar
 import com.telemetria.app.ui.dashboard.components.SpeedGauge
 import com.telemetria.app.ui.dashboard.components.StatusIndicatorRow
+import com.telemetria.app.ui.dashboard.components.VehicleSettingsDialog
 import com.telemetria.app.ui.theme.CockpitBlack
 import com.telemetria.app.ui.theme.NeonAmber
 import com.telemetria.app.ui.theme.NeonCyan
@@ -71,13 +75,24 @@ fun DashboardScreen(
     onSessionFinished: (String) -> Unit
 ) {
     val liveState by viewModel.liveState.collectAsState()
+    val vehicleConfig by viewModel.vehicleConfig.collectAsState()
     val isVideoEnabled by viewModel.isVideoEnabled.collectAsState()
     val isObdDialogVisible by viewModel.isObdDialogVisible.collectAsState()
+    val isSettingsDialogVisible by viewModel.isSettingsDialogVisible.collectAsState()
     val obdConnectionState by viewModel.obdConnectionState.collectAsState()
     val discoveredBleDevices by viewModel.discoveredBleDevices.collectAsState()
 
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    // Diálogo de ajustes de vehículo y tacómetro
+    if (isSettingsDialogVisible) {
+        VehicleSettingsDialog(
+            currentConfig = vehicleConfig,
+            onSaveConfig = { viewModel.saveVehicleConfig(it) },
+            onDismiss = { viewModel.dismissSettingsDialog() }
+        )
+    }
 
     // Diálogo de conexión OBD-II BLE
     if (isObdDialogVisible) {
@@ -129,6 +144,7 @@ fun DashboardScreen(
         if (isLandscape) {
             DashboardLandscapeContent(
                 liveState = liveState,
+                vehicleConfig = vehicleConfig,
                 isVideoEnabled = isVideoEnabled,
                 viewModel = viewModel,
                 onNavigateToHistory = onNavigateToHistory,
@@ -138,6 +154,7 @@ fun DashboardScreen(
             DashboardPortraitContent(
                 innerPadding = innerPadding,
                 liveState = liveState,
+                vehicleConfig = vehicleConfig,
                 isVideoEnabled = isVideoEnabled,
                 viewModel = viewModel,
                 onNavigateToHistory = onNavigateToHistory
@@ -150,6 +167,7 @@ fun DashboardScreen(
 private fun DashboardPortraitContent(
     innerPadding: PaddingValues,
     liveState: SessionLiveState,
+    vehicleConfig: VehicleConfig,
     isVideoEnabled: Boolean,
     viewModel: DashboardViewModel,
     onNavigateToHistory: () -> Unit
@@ -169,6 +187,7 @@ private fun DashboardPortraitContent(
             onObdClick = { viewModel.showObdDialog() },
             onToggleVideo = { viewModel.toggleVideoEnabled() },
             onCalibrate = { viewModel.onCalibrateSensorsClicked() },
+            onOpenSettings = { viewModel.showSettingsDialog() },
             onNavigateToHistory = onNavigateToHistory
         )
 
@@ -192,8 +211,13 @@ private fun DashboardPortraitContent(
             )
         }
 
-        // Tacómetro estilo MyChron 5
-        RpmBar(rpm = liveState.engineRpm)
+        // Tacómetro estilo MyChron 5 con Shift Lights de carreras y escala configurada
+        RpmBar(
+            rpm = liveState.engineRpm,
+            maxRpm = vehicleConfig.maxRpm,
+            redlineRpm = vehicleConfig.redlineRpm,
+            shiftLightRpm = vehicleConfig.shiftLightRpm
+        )
 
         // Velocímetro Central (se expande cuando la cámara está desactivada)
         SpeedGauge(
@@ -298,6 +322,7 @@ private fun DashboardPortraitContent(
 @Composable
 private fun DashboardLandscapeContent(
     liveState: SessionLiveState,
+    vehicleConfig: VehicleConfig,
     isVideoEnabled: Boolean,
     viewModel: DashboardViewModel,
     onNavigateToHistory: () -> Unit,
@@ -318,6 +343,7 @@ private fun DashboardLandscapeContent(
             onObdClick = { viewModel.showObdDialog() },
             onToggleVideo = { viewModel.toggleVideoEnabled() },
             onCalibrate = { viewModel.onCalibrateSensorsClicked() },
+            onOpenSettings = { viewModel.showSettingsDialog() },
             onNavigateToHistory = onNavigateToHistory
         )
 
@@ -335,7 +361,12 @@ private fun DashboardLandscapeContent(
                     .fillMaxHeight(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                RpmBar(rpm = liveState.engineRpm)
+                RpmBar(
+                    rpm = liveState.engineRpm,
+                    maxRpm = vehicleConfig.maxRpm,
+                    redlineRpm = vehicleConfig.redlineRpm,
+                    shiftLightRpm = vehicleConfig.shiftLightRpm
+                )
 
                 SpeedGauge(
                     speedKmh = liveState.currentSpeedKmh,
@@ -469,6 +500,7 @@ private fun DashboardHeaderRow(
     onObdClick: () -> Unit,
     onToggleVideo: () -> Unit,
     onCalibrate: () -> Unit,
+    onOpenSettings: () -> Unit,
     onNavigateToHistory: () -> Unit
 ) {
     Row(
@@ -485,39 +517,56 @@ private fun DashboardHeaderRow(
             onObdClick = onObdClick
         )
 
-        Row {
-            IconButton(onClick = onObdClick) {
-                Icon(
-                    imageVector = Icons.Default.Bluetooth,
-                    contentDescription = "Conectar Veepeak OBD-II",
-                    tint = if (liveState.isObdConnected) NeonCyan else TextMuted
-                )
-            }
-
-            IconButton(onClick = onToggleVideo) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = onToggleVideo,
+                modifier = Modifier.size(36.dp)
+            ) {
                 Icon(
                     imageVector = if (isVideoEnabled) Icons.Default.Videocam else Icons.Default.VideocamOff,
                     contentDescription = "Activar / Desactivar Grabación de Vídeo",
-                    tint = if (isVideoEnabled) NeonCyan else TextMuted
+                    tint = if (isVideoEnabled) NeonCyan else TextMuted,
+                    modifier = Modifier.size(20.dp)
                 )
             }
 
             IconButton(
                 onClick = onCalibrate,
-                enabled = !liveState.isCalibrating
+                enabled = !liveState.isCalibrating,
+                modifier = Modifier.size(36.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.ScreenRotation,
                     contentDescription = "Calibrar posición de sensores",
-                    tint = if (liveState.isCalibrating) NeonAmber else if (liveState.isSensorCalibrated) NeonGreen else TextPrimary
+                    tint = if (liveState.isCalibrating) NeonAmber else if (liveState.isSensorCalibrated) NeonGreen else TextPrimary,
+                    modifier = Modifier.size(20.dp)
                 )
             }
 
-            IconButton(onClick = onNavigateToHistory) {
+            IconButton(
+                onClick = onOpenSettings,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Tune,
+                    contentDescription = "Ajustes del Vehículo y Tacómetro",
+                    tint = NeonCyan,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            IconButton(
+                onClick = onNavigateToHistory,
+                modifier = Modifier.size(36.dp)
+            ) {
                 Icon(
                     imageVector = Icons.Default.History,
                     contentDescription = "Historial de Sesiones",
-                    tint = NeonCyan
+                    tint = NeonCyan,
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
