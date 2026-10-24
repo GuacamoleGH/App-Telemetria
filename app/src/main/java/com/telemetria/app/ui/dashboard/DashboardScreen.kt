@@ -30,6 +30,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -83,16 +85,136 @@ fun DashboardScreen(
         )
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(CockpitBlack)
-            .statusBarsPadding()
-            .navigationBarsPadding()
-    ) {
+    Scaffold(
+        containerColor = CockpitBlack,
+        bottomBar = {
+            Surface(
+                color = CockpitBlack,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                ) {
+                    when (liveState.status) {
+                        SessionStatus.COMPLETED -> {
+                            Button(
+                                onClick = { viewModel.onStartClicked() },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = NeonGreen,
+                                    contentColor = CockpitBlack
+                                ),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Icon(Icons.Default.PlayArrow, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = if (isVideoEnabled) "INICIAR VÍDEO + TELEMETRÍA" else "INICIAR TELEMETRÍA",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                        SessionStatus.ACTIVE -> {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Button(
+                                    onClick = { viewModel.onPauseClicked() },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(56.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = NeonAmber,
+                                        contentColor = CockpitBlack
+                                    ),
+                                    shape = RoundedCornerShape(14.dp)
+                                ) {
+                                    Icon(Icons.Default.Pause, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("PAUSAR", fontWeight = FontWeight.Bold)
+                                }
+
+                                Button(
+                                    onClick = {
+                                        viewModel.onStopClicked { saved ->
+                                            onSessionFinished(saved.id)
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(56.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = NeonRed,
+                                        contentColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(14.dp)
+                                ) {
+                                    Icon(Icons.Default.Stop, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("FINALIZAR", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                        SessionStatus.PAUSED -> {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Button(
+                                    onClick = { viewModel.onResumeClicked() },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(56.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = NeonGreen,
+                                        contentColor = CockpitBlack
+                                    ),
+                                    shape = RoundedCornerShape(14.dp)
+                                ) {
+                                    Icon(Icons.Default.PlayArrow, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("REANUDAR", fontWeight = FontWeight.Bold)
+                                }
+
+                                Button(
+                                    onClick = {
+                                        viewModel.onStopClicked { saved ->
+                                            onSessionFinished(saved.id)
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(56.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = NeonRed,
+                                        contentColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(14.dp)
+                                ) {
+                                    Icon(Icons.Default.Stop, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("FINALIZAR", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(innerPadding)
+                .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 8.dp)
                 .verticalScroll(scrollState),
             verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -246,119 +368,7 @@ fun DashboardScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // Botones de Control de Sesión
-            when (liveState.status) {
-                SessionStatus.COMPLETED -> {
-                    Button(
-                        onClick = { viewModel.onStartClicked() },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = NeonGreen,
-                            contentColor = CockpitBlack
-                        ),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Icon(Icons.Default.PlayArrow, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (isVideoEnabled) "INICIAR VÍDEO + TELEMETRÍA" else "INICIAR TELEMETRÍA",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-                SessionStatus.ACTIVE -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Button(
-                            onClick = { viewModel.onPauseClicked() },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = NeonAmber,
-                                contentColor = CockpitBlack
-                            ),
-                            shape = RoundedCornerShape(14.dp)
-                        ) {
-                            Icon(Icons.Default.Pause, contentDescription = null)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("PAUSAR", fontWeight = FontWeight.Bold)
-                        }
-
-                        Button(
-                            onClick = {
-                                viewModel.onStopClicked { saved ->
-                                    onSessionFinished(saved.id)
-                                }
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = NeonRed,
-                                contentColor = Color.White
-                            ),
-                            shape = RoundedCornerShape(14.dp)
-                        ) {
-                            Icon(Icons.Default.Stop, contentDescription = null)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("FINALIZAR", fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-                SessionStatus.PAUSED -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Button(
-                            onClick = { viewModel.onResumeClicked() },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = NeonGreen,
-                                contentColor = CockpitBlack
-                            ),
-                            shape = RoundedCornerShape(14.dp)
-                        ) {
-                            Icon(Icons.Default.PlayArrow, contentDescription = null)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("REANUDAR", fontWeight = FontWeight.Bold)
-                        }
-
-                        Button(
-                            onClick = {
-                                viewModel.onStopClicked { saved ->
-                                    onSessionFinished(saved.id)
-                                }
-                            },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(56.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = NeonRed,
-                                contentColor = Color.White
-                            ),
-                            shape = RoundedCornerShape(14.dp)
-                        ) {
-                            Icon(Icons.Default.Stop, contentDescription = null)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("FINALIZAR", fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-
-            // Margen inferior seguro respecto a la barra de navegación del sistema
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(10.dp))
         }
     }
 }

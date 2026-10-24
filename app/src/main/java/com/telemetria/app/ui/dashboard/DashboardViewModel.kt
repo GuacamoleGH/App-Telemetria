@@ -30,7 +30,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     val liveState: StateFlow<SessionLiveState> = sessionManager.liveState
 
-    private val _isVideoEnabled = MutableStateFlow(true)
+    private val _isVideoEnabled = MutableStateFlow(false)
     val isVideoEnabled: StateFlow<Boolean> = _isVideoEnabled.asStateFlow()
 
     private val _isObdDialogVisible = MutableStateFlow(false)
