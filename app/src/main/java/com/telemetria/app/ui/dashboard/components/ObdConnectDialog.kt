@@ -130,7 +130,7 @@ fun ObdConnectDialog(
                 ) {
                     when (connectionState) {
                         is ObdConnectionState.Disconnected -> {
-                            Text("Desconectado. Pulsa 'Escanear' para buscar tu Veepeak BLE.", fontSize = 12.sp, color = TextMuted)
+                            Text("Desconectado. Pulsa 'Escanear' para buscar tu Veepeak BLE.", fontSize = 12.sp, color = TextSecondary)
                         }
                         is ObdConnectionState.Scanning -> {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -168,17 +168,18 @@ fun ObdConnectDialog(
                             }
                         }
                         is ObdConnectionState.Error -> {
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                 Text(
-                                    text = connectionState.message,
+                                    text = connectionState.message.trim(),
                                     fontSize = 12.sp,
                                     color = NeonRed,
-                                    lineHeight = 16.sp
+                                    lineHeight = 15.sp
                                 )
                                 Text(
                                     text = "Nota: El adaptador debe estar enchufado en el coche con el contacto puesto.",
-                                    fontSize = 10.sp,
-                                    color = TextMuted
+                                    fontSize = 11.sp,
+                                    color = Color(0xFFE2E8F0),
+                                    lineHeight = 15.sp
                                 )
                             }
                         }
