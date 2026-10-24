@@ -130,3 +130,4 @@ python render_telemetry_overlay.py --zip paquete_sesion.zip --out video_telemetr
         zos.closeEntry()
     }
 }
+

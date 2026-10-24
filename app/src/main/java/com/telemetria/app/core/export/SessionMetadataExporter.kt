@@ -67,3 +67,4 @@ object SessionMetadataExporter {
             .replace("\t", "\\t")
     }
 }
+

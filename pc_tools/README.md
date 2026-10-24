@@ -49,3 +49,4 @@ Los paquetes exportados por la aplicación son compatibles con **RaceRender 3**:
    * G Lateral: Seleccionar columna `lateral_g` (Unidad: *G's*).
    * G Longitudinal: Seleccionar columna `longitudinal_g` (Unidad: *G's*).
    * Coordenadas GPS: `latitude` y `longitude`.
+
