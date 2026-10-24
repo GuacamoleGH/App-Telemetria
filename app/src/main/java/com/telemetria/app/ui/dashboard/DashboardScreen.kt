@@ -367,6 +367,9 @@ fun DashboardScreen(
                     )
                 }
             }
+
+            // Espacio final para que las últimas tarjetas nunca queden tapadas por el botón al hacer scroll
+            Spacer(modifier = Modifier.height(28.dp))
         }
     }
 }
