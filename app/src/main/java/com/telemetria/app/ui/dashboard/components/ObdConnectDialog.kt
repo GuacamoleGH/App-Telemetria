@@ -31,18 +31,22 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.telemetria.app.core.obd.BlePermissionHelper
 import com.telemetria.app.core.obd.model.ObdConnectionState
 import com.telemetria.app.core.obd.scanner.DiscoveredBleDevice
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.telemetria.app.ui.theme.CockpitBorder
 import com.telemetria.app.ui.theme.CockpitCardBg
 import com.telemetria.app.ui.theme.CockpitDarkSurface
@@ -65,12 +69,16 @@ fun ObdConnectDialog(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val allGranted = permissions.values.all { it }
         if (allGranted) {
-            onStartScan()
+            scope.launch {
+                delay(350)
+                onStartScan()
+            }
         }
     }
 
@@ -160,7 +168,19 @@ fun ObdConnectDialog(
                             }
                         }
                         is ObdConnectionState.Error -> {
-                            Text("Error: ${connectionState.message}", fontSize = 12.sp, color = NeonRed)
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    text = connectionState.message,
+                                    fontSize = 12.sp,
+                                    color = NeonRed,
+                                    lineHeight = 16.sp
+                                )
+                                Text(
+                                    text = "Nota: El adaptador debe estar enchufado en el coche con el contacto puesto.",
+                                    fontSize = 10.sp,
+                                    color = TextMuted
+                                )
+                            }
                         }
                     }
                 }
@@ -177,10 +197,22 @@ fun ObdConnectDialog(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(100.dp),
+                            .height(110.dp)
+                            .background(CockpitCardBg.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                            .padding(12.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("No se han detectado dispositivos aún.", fontSize = 12.sp, color = TextMuted)
+                        Text(
+                            text = if (connectionState is ObdConnectionState.Scanning) {
+                                "Buscando adaptadores cercanos...\n(Asegúrate de que el Veepeak esté conectado en el coche)"
+                            } else {
+                                "No se han detectado dispositivos aún.\nConecta el Veepeak al coche, pon el contacto y pulsa 'ESCANEAR'."
+                            },
+                            fontSize = 11.sp,
+                            color = TextMuted,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 16.sp
+                        )
                     }
                 } else {
                     LazyColumn(

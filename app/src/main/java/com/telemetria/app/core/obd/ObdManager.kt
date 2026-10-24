@@ -76,8 +76,11 @@ class ObdManager private constructor(
                 bleScannerHelper.scanForObdDevices(durationMillis).collect { list ->
                     _discoveredDevices.value = list
                 }
+                if (_connectionState.value is ObdConnectionState.Scanning) {
+                    _connectionState.value = ObdConnectionState.Disconnected
+                }
             } catch (e: Exception) {
-                _connectionState.value = ObdConnectionState.Error("Error escaneo BLE: ${e.message}")
+                _connectionState.value = ObdConnectionState.Error(e.message ?: "Fallo al escanear dispositivos")
             }
         }
     }
