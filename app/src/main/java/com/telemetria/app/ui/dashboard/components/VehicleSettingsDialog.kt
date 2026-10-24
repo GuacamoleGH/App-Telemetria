@@ -2,11 +2,10 @@ package com.telemetria.app.ui.dashboard.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Speed
@@ -44,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.telemetria.app.core.model.VehicleConfig
 import com.telemetria.app.ui.theme.CockpitBorder
 import com.telemetria.app.ui.theme.CockpitCardBg
@@ -62,7 +61,6 @@ private data class VehiclePreset(
     val shiftRpm: Int
 )
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun VehicleSettingsDialog(
     currentConfig: VehicleConfig,
@@ -86,21 +84,23 @@ fun VehicleSettingsDialog(
         )
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Surface(
             shape = RoundedCornerShape(16.dp),
             color = CockpitCardBg,
             border = androidx.compose.foundation.BorderStroke(1.dp, CockpitBorder),
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp)
+                .fillMaxWidth(0.92f)
+                .padding(vertical = 12.dp)
         ) {
             Column(
-                modifier = Modifier
-                    .padding(20.dp)
-                    .verticalScroll(rememberScrollState())
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // Cabecera con título e icono de cerrar
+                // Cabecera compacta
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -111,41 +111,49 @@ fun VehicleSettingsDialog(
                             imageVector = Icons.Default.Speed,
                             contentDescription = null,
                             tint = NeonCyan,
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(20.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = "AJUSTES DEL VEHÍCULO",
-                            fontSize = 15.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary
                         )
                     }
 
-                    IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = TextMuted)
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Cerrar",
+                            tint = TextMuted,
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                 }
 
                 Text(
-                    text = "Configura la escala del tacómetro, línea roja y aviso de cambio estilo competición para la app y el vídeo.",
+                    text = "Configura tacómetro, corte y shift lights de carreras.",
                     fontSize = 11.sp,
-                    color = TextSecondary,
-                    modifier = Modifier.padding(top = 2.dp, bottom = 12.dp)
+                    color = TextSecondary
                 )
 
-                // Presets rápidos de vehículos
+                // Perfiles rápidos en fila horizontal deslizable
                 Text(
                     text = "PERFILES RÁPIDOS",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextSecondary
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     presets.forEach { preset ->
                         val isSelected = maxRpm == preset.maxRpm && redlineRpm == preset.redlineRpm
@@ -168,12 +176,13 @@ fun VehicleSettingsDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(2.dp))
 
                 // 1. RPM Máximas de escala
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("RPM MÁXIMAS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                     Text("$maxRpm RPM", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = NeonCyan)
@@ -189,15 +198,15 @@ fun VehicleSettingsDialog(
                     },
                     valueRange = 4000f..12000f,
                     steps = 31,
-                    colors = SliderDefaults.colors(thumbColor = NeonCyan, activeTrackColor = NeonCyan)
+                    colors = SliderDefaults.colors(thumbColor = NeonCyan, activeTrackColor = NeonCyan),
+                    modifier = Modifier.height(34.dp)
                 )
-
-                Spacer(modifier = Modifier.height(6.dp))
 
                 // 2. Inicio de Línea Roja (Redline)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("LÍNEA ROJA (CORTE)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                     Text("$redlineRpm RPM", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = NeonRed)
@@ -210,15 +219,15 @@ fun VehicleSettingsDialog(
                         if (shiftLightRpm > redlineRpm) shiftLightRpm = redlineRpm
                     },
                     valueRange = 3000f..maxRpm.toFloat(),
-                    colors = SliderDefaults.colors(thumbColor = NeonRed, activeTrackColor = NeonRed)
+                    colors = SliderDefaults.colors(thumbColor = NeonRed, activeTrackColor = NeonRed),
+                    modifier = Modifier.height(34.dp)
                 )
-
-                Spacer(modifier = Modifier.height(6.dp))
 
                 // 3. Aviso de Cambio (Shift Light)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text("AVISO DE CAMBIO (SHIFT LIGHT)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
                     Text("$shiftLightRpm RPM", fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Monospace, color = NeonAmber)
@@ -230,19 +239,30 @@ fun VehicleSettingsDialog(
                         shiftLightRpm = rounded.coerceAtMost(maxRpm)
                     },
                     valueRange = 2500f..maxRpm.toFloat(),
-                    colors = SliderDefaults.colors(thumbColor = NeonAmber, activeTrackColor = NeonAmber)
+                    colors = SliderDefaults.colors(thumbColor = NeonAmber, activeTrackColor = NeonAmber),
+                    modifier = Modifier.height(34.dp)
                 )
-
-                Spacer(modifier = Modifier.height(10.dp))
 
                 // Vista Previa Interactiva en tiempo real del Tacómetro
-                Text(
-                    text = "VISTA PREVIA EN VIVO (PRUEBA DE ACELERACIÓN)",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextSecondary
-                )
-                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "VISTA PREVIA EN VIVO",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextSecondary
+                    )
+                    Text(
+                        text = "${previewRpm.toInt()} RPM",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        color = NeonGreen
+                    )
+                }
 
                 RpmBar(
                     rpm = previewRpm.toInt(),
@@ -251,15 +271,15 @@ fun VehicleSettingsDialog(
                     shiftLightRpm = shiftLightRpm
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
                 Slider(
                     value = previewRpm.coerceIn(0f, maxRpm.toFloat()),
                     onValueChange = { previewRpm = it },
                     valueRange = 0f..maxRpm.toFloat(),
-                    colors = SliderDefaults.colors(thumbColor = NeonGreen, activeTrackColor = NeonGreen)
+                    colors = SliderDefaults.colors(thumbColor = NeonGreen, activeTrackColor = NeonGreen),
+                    modifier = Modifier.height(34.dp)
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 // Botón de Guardar
                 Button(
@@ -274,7 +294,7 @@ fun VehicleSettingsDialog(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
+                        .height(44.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = NeonGreen,
                         contentColor = Color.Black
