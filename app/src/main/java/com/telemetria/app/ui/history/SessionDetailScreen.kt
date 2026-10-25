@@ -16,7 +16,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -26,13 +28,16 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -69,6 +74,7 @@ fun SessionDetailScreen(
     val points by viewModel.selectedPoints.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(sessionId) {
         viewModel.loadSessionDetails(sessionId)
@@ -78,6 +84,45 @@ fun SessionDetailScreen(
         viewModel.exportMessage.collectLatest { msg ->
             snackbarHostState.showSnackbar(msg)
         }
+    }
+
+    if (showDeleteDialog && session != null) {
+        val target = session!!
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = {
+                Text(
+                    text = "¿Eliminar sesión?",
+                    color = TextPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "¿Deseas eliminar '${target.title}'? Se borrarán sus datos de telemetría y los archivos generados (vídeo, paquete .zip, CSV y GPX si existen).",
+                    color = TextSecondary
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        viewModel.deleteSession(target.id) {
+                            onBack()
+                        }
+                    }
+                ) {
+                    Text("ELIMINAR", color = NeonRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("CANCELAR", color = TextSecondary)
+                }
+            },
+            containerColor = CockpitDarkSurface,
+            shape = RoundedCornerShape(12.dp)
+        )
     }
 
     Scaffold(
@@ -98,6 +143,17 @@ fun SessionDetailScreen(
                             contentDescription = "Volver",
                             tint = NeonCyan
                         )
+                    }
+                },
+                actions = {
+                    if (session != null) {
+                        IconButton(onClick = { showDeleteDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Eliminar sesión",
+                                tint = TextMuted
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

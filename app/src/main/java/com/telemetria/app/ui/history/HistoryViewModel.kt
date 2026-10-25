@@ -9,6 +9,7 @@ import com.telemetria.app.core.database.entity.SessionEntity
 import com.telemetria.app.core.database.entity.TelemetryPointEntity
 import com.telemetria.app.core.export.CsvExporter
 import com.telemetria.app.core.export.GpxExporter
+import com.telemetria.app.core.util.SessionFileCleaner
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -110,10 +111,32 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun deleteSession(sessionId: String) {
+    fun deleteSession(sessionId: String, onDeleted: (() -> Unit)? = null) {
         viewModelScope.launch(Dispatchers.IO) {
+            val session = db.sessionDao().getSessionById(sessionId)
+
+            // Eliminar todos los archivos físicos generados (vídeo, zip, csv, gpx, temporales)
+            val deletedFiles = SessionFileCleaner.deleteSessionFiles(getApplication(), session, sessionId)
+
+            // Eliminar registros de la base de datos local
             db.telemetryPointDao().deletePointsForSession(sessionId)
             db.sessionDao().deleteSession(sessionId)
+
+            if (_selectedSession.value?.id == sessionId) {
+                _selectedSession.value = null
+                _selectedPoints.value = emptyList()
+            }
+
+            withContext(Dispatchers.Main) {
+                val count = deletedFiles.size
+                val msg = if (count > 0) {
+                    "Sesión y $count archivo(s) asociados eliminados (vídeo, zip, csv, gpx)"
+                } else {
+                    "Sesión eliminada del historial"
+                }
+                _exportMessage.emit(msg)
+                onDeleted?.invoke()
+            }
         }
     }
 
