@@ -1,4 +1,8 @@
-# Telemetría - App Android para Coches de Calle y Circuito
+# Tachyon - Telemetría para Coches de Calle y Circuito
+
+[![Download APK](https://img.shields.io/badge/Download-APK-brightgreen?style=for-the-badge&logo=android)](apk/Tachyon.apk)
+
+> 📲 **Descarga directa:** Puedes descargar e instalar la aplicación lista para usar directamente desde el repositorio: [**`apk/Tachyon.apk`**](apk/Tachyon.apk).
 
 App nativa para Android (Kotlin + Jetpack Compose) de telemetría automovilística de alto rendimiento diseñada para carretera y circuito:
 
@@ -88,7 +92,8 @@ pc_tools/
 ./gradlew assembleDebug
 ```
 
-El archivo APK generado se ubicará en:
+El archivo APK precompilado se encuentra disponible directamente en la carpeta [`apk/Tachyon.apk`](apk/Tachyon.apk).
+Si compilas manualmente, se ubicará en:
 `app/build/outputs/apk/debug/app-debug.apk`
 
 ### 2. Instalación en el Dispositivo
@@ -96,7 +101,7 @@ El archivo APK generado se ubicará en:
 Conecta el teléfono por USB con la depuración USB activada y ejecuta:
 
 ```bash
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb install -r apk/Tachyon.apk
 ```
 
 ---
