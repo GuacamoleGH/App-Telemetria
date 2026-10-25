@@ -117,7 +117,10 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
             onStatusUpdate = { durationSec, _ ->
                 sessionManager.updateVideoStatus(isRecording = true, durationSec = durationSec)
             },
-            onFinalized = { _, _ ->
+            onFinalized = { success, errorMsg ->
+                if (!success) {
+                    android.util.Log.e("DashboardViewModel", "Grabación de vídeo finalizada: $errorMsg")
+                }
                 sessionManager.updateVideoStatus(isRecording = false, durationSec = 0)
             }
         )

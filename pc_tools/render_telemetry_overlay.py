@@ -219,7 +219,7 @@ def draw_overlay(frame, tel_data, current_time_sec, vehicle_config=None):
     cv2.putText(frame, time_str, (40, 50), cv2.FONT_HERSHEY_DUPLEX, 0.9, (240, 245, 250), 1, cv2.LINE_AA)
 
 
-def process_video(video_path, csv_path, output_path, vehicle_config=None):
+def process_video(video_path, csv_path, output_path, vehicle_config=None, rotate=0):
     print(f"[INFO] Abriendo vídeo original: {video_path}")
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -228,10 +228,16 @@ def process_video(video_path, csv_path, output_path, vehicle_config=None):
 
     fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    raw_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    raw_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-    print(f"[INFO] Resolución: {width}x{height} | FPS: {fps:.2f} | Frames totales: {total_frames}")
+    # Si se rota 90 o 270 grados, las dimensiones se invierten
+    if rotate in (90, 270):
+        width, height = raw_height, raw_width
+    else:
+        width, height = raw_width, raw_height
+
+    print(f"[INFO] Resolución: {width}x{height} | FPS: {fps:.2f} | Frames totales: {total_frames} | Rotación: {rotate}°")
     if vehicle_config:
         print(f"[INFO] Configuración de vehículo: Max RPM={vehicle_config.get('max_rpm')}, Redline={vehicle_config.get('redline_rpm')}, Shift={vehicle_config.get('shift_light_rpm')}")
 
@@ -252,6 +258,14 @@ def process_video(video_path, csv_path, output_path, vehicle_config=None):
         ret, frame = cap.read()
         if not ret:
             break
+
+        # Corregir orientación del frame de cámara si está invertido
+        if rotate == 180:
+            frame = cv2.rotate(frame, cv2.ROTATE_180)
+        elif rotate == 90:
+            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+        elif rotate == 270:
+            frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
         current_time_sec = frame_idx / fps
         interpolated = interpolate_telemetry(tel_data, current_time_sec)
@@ -305,6 +319,7 @@ def main():
     parser.add_argument("--max-rpm", type=int, help="Override de RPM máximas para el tacómetro.")
     parser.add_argument("--redline-rpm", type=int, help="Override de RPM donde empieza la línea roja.")
     parser.add_argument("--shift-rpm", type=int, help="Override de RPM para las luces de cambio (shift light).")
+    parser.add_argument("--rotate", type=int, choices=[0, 90, 180, 270], default=0, help="Rotar el vídeo base en grados (útil si el móvil grabó invertido 180°).")
     args = parser.parse_args()
 
     if not args.zip and not args.dir:
@@ -364,7 +379,7 @@ def main():
         vehicle_config["shift_light_rpm"] = args.shift_rpm
 
     try:
-        process_video(video_file, csv_file, os.path.abspath(args.out), vehicle_config)
+        process_video(video_file, csv_file, os.path.abspath(args.out), vehicle_config, rotate=args.rotate)
     finally:
         if clean_temp:
             shutil.rmtree(work_dir, ignore_errors=True)
