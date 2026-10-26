@@ -31,16 +31,47 @@ import com.telemetria.app.ui.theme.NeonGreen
 import com.telemetria.app.ui.theme.TextMuted
 import com.telemetria.app.ui.theme.TextSecondary
 
+import kotlin.math.roundToInt
+
 @Composable
 fun SpeedGauge(
     speedKmh: Float,
     isGpsValid: Boolean,
+    obdSpeedKmh: Float? = null,
     gear: String? = null,
     modifier: Modifier = Modifier,
     speedFontSize: TextUnit = 68.sp,
     unitFontSize: TextUnit = 16.sp,
     verticalPadding: Dp = 10.dp
 ) {
+    val hasGps = isGpsValid
+    val hasObd = obdSpeedKmh != null
+
+    val displaySpeed = when {
+        hasGps -> FormatUtils.formatSpeed(speedKmh)
+        hasObd -> FormatUtils.formatSpeed(obdSpeedKmh!!)
+        else -> "--.-"
+    }
+
+    val displayColor = when {
+        hasGps -> NeonGreen
+        hasObd -> NeonCyan
+        else -> TextMuted
+    }
+
+    val sourceLabel = when {
+        hasGps && hasObd -> "ORIGEN: GPS REAL • OBD ACTIVO"
+        hasGps -> "ORIGEN: GPS REAL"
+        hasObd -> "ORIGEN: OBD-II (RUEDAS)"
+        else -> "SIN SEÑAL DE VELOCIDAD"
+    }
+
+    val sourceColor = when {
+        hasGps -> NeonGreen.copy(alpha = 0.85f)
+        hasObd -> NeonCyan.copy(alpha = 0.9f)
+        else -> Color(0xFFFF5252)
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -49,6 +80,42 @@ fun SpeedGauge(
             .padding(vertical = verticalPadding, horizontal = 8.dp),
         contentAlignment = Alignment.Center
     ) {
+        // Pill OBD Speed secundaria en la esquina superior izquierda si GPS es la velocidad principal
+        if (hasGps && hasObd) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = 10.dp, top = 6.dp)
+                    .background(Color(0xFF141922), RoundedCornerShape(8.dp))
+                    .border(1.dp, NeonCyan.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "OBD ",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextSecondary
+                    )
+                    Text(
+                        text = "${obdSpeedKmh!!.roundToInt()}",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.Monospace,
+                        color = NeonCyan
+                    )
+                    Text(
+                        text = " KM/H",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextSecondary
+                    )
+                }
+            }
+        }
+
+        // Pill GEAR en la esquina superior derecha
         if (gear != null) {
             Box(
                 modifier = Modifier
@@ -84,15 +151,12 @@ fun SpeedGauge(
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.Center
             ) {
-                val speedDisplay = if (isGpsValid) FormatUtils.formatSpeed(speedKmh) else "--.-"
-                val speedColor = if (isGpsValid) NeonGreen else TextMuted
-
                 Text(
-                    text = speedDisplay,
+                    text = displaySpeed,
                     fontSize = speedFontSize,
                     fontWeight = FontWeight.Black,
                     fontFamily = FontFamily.Monospace,
-                    color = speedColor,
+                    color = displayColor,
                     lineHeight = speedFontSize,
                     maxLines = 1,
                     softWrap = false
@@ -112,10 +176,10 @@ fun SpeedGauge(
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = if (isGpsValid) "ORIGEN: GPS REAL" else "SIN SEÑAL GPS",
+                text = sourceLabel,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = if (isGpsValid) NeonGreen.copy(alpha = 0.8f) else Color(0xFFFF5252),
+                color = sourceColor,
                 maxLines = 1,
                 softWrap = false
             )

@@ -223,6 +223,7 @@ private fun DashboardPortraitContent(
         SpeedGauge(
             speedKmh = liveState.currentSpeedKmh,
             isGpsValid = liveState.gpsFix,
+            obdSpeedKmh = liveState.obdSpeedKmh,
             gear = liveState.calculatedGear,
             speedFontSize = if (isVideoEnabled) 52.sp else 68.sp,
             unitFontSize = if (isVideoEnabled) 14.sp else 16.sp,
@@ -409,6 +410,7 @@ private fun DashboardLandscapeContent(
                 SpeedGauge(
                     speedKmh = liveState.currentSpeedKmh,
                     isGpsValid = liveState.gpsFix,
+                    obdSpeedKmh = liveState.obdSpeedKmh,
                     gear = liveState.calculatedGear,
                     speedFontSize = 50.sp,
                     unitFontSize = 14.sp,

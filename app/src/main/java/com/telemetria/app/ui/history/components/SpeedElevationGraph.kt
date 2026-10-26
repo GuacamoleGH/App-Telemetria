@@ -3,6 +3,7 @@ package com.telemetria.app.ui.history.components
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -25,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import com.telemetria.app.core.database.entity.TelemetryPointEntity
 import com.telemetria.app.ui.theme.CockpitBorder
 import com.telemetria.app.ui.theme.CockpitCardBg
+import com.telemetria.app.ui.theme.NeonCyan
 import com.telemetria.app.ui.theme.NeonGreen
 import com.telemetria.app.ui.theme.TextMuted
 import com.telemetria.app.ui.theme.TextSecondary
@@ -35,9 +38,18 @@ fun SpeedElevationGraph(
     points: List<TelemetryPointEntity>,
     modifier: Modifier = Modifier
 ) {
-    val speedValues = points.mapNotNull { it.gpsSpeedKmh }
-    val maxSpeed = (speedValues.maxOrNull() ?: 100f).coerceAtLeast(20f)
+    val gpsPoints = points.filter { it.gpsSpeedKmh != null }
+    val obdPoints = points.filter { it.obdSpeedKmh != null }
+
+    val allSpeeds = buildList {
+        gpsPoints.forEach { it.gpsSpeedKmh?.let { s -> add(s) } }
+        obdPoints.forEach { it.obdSpeedKmh?.let { s -> add(s) } }
+    }
+
+    val maxSpeed = (allSpeeds.maxOrNull() ?: 100f).coerceAtLeast(20f)
     val minSpeed = 0f
+    val hasGps = gpsPoints.size >= 2
+    val hasObd = obdPoints.size >= 2
 
     Box(
         modifier = modifier
@@ -49,14 +61,28 @@ fun SpeedElevationGraph(
         Column {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "PERFIL DE VELOCIDAD (KM/H)",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextSecondary
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "PERFIL VELOCIDAD",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextSecondary
+                    )
+                    if (hasGps && hasObd) {
+                        Text(text = "● GPS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonGreen)
+                        Text(text = "● OBD", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonCyan)
+                    } else if (hasObd) {
+                        Text(text = "● OBD", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonCyan)
+                    } else if (hasGps) {
+                        Text(text = "● GPS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = NeonGreen)
+                    }
+                }
                 Text(
                     text = "MÁX: ${String.format(Locale.US, "%.1f", maxSpeed)} km/h",
                     fontSize = 11.sp,
@@ -68,12 +94,12 @@ fun SpeedElevationGraph(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            if (speedValues.size < 2) {
+            if (!hasGps && !hasObd) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(120.dp),
-                    contentAlignment = androidx.compose.ui.Alignment.Center
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Datos insuficientes para la gráfica",
@@ -102,27 +128,43 @@ fun SpeedElevationGraph(
                         )
                     }
 
-                    // Build path
-                    val path = Path()
-                    val stepX = width / (speedValues.size - 1).coerceAtLeast(1)
+                    // 1. Trazado OBD Speed (si existe)
+                    if (hasObd) {
+                        val obdPath = Path()
+                        val stepX = width / (obdPoints.size - 1).coerceAtLeast(1)
+                        obdPoints.forEachIndexed { index, point ->
+                            val speed = point.obdSpeedKmh ?: 0f
+                            val x = index * stepX
+                            val normalizedY = 1f - ((speed - minSpeed) / (maxSpeed - minSpeed)).coerceIn(0f, 1f)
+                            val y = normalizedY * (height - 10f) + 5f
 
-                    speedValues.forEachIndexed { index, speed ->
-                        val x = index * stepX
-                        val normalizedY = 1f - ((speed - minSpeed) / (maxSpeed - minSpeed)).coerceIn(0f, 1f)
-                        val y = normalizedY * (height - 10f) + 5f
-
-                        if (index == 0) {
-                            path.moveTo(x, y)
-                        } else {
-                            path.lineTo(x, y)
+                            if (index == 0) obdPath.moveTo(x, y) else obdPath.lineTo(x, y)
                         }
+                        drawPath(
+                            path = obdPath,
+                            color = NeonCyan.copy(alpha = 0.85f),
+                            style = Stroke(width = 2.dp.toPx())
+                        )
                     }
 
-                    drawPath(
-                        path = path,
-                        color = NeonGreen,
-                        style = Stroke(width = 3.dp.toPx())
-                    )
+                    // 2. Trazado GPS Speed (si existe)
+                    if (hasGps) {
+                        val gpsPath = Path()
+                        val stepX = width / (gpsPoints.size - 1).coerceAtLeast(1)
+                        gpsPoints.forEachIndexed { index, point ->
+                            val speed = point.gpsSpeedKmh ?: 0f
+                            val x = index * stepX
+                            val normalizedY = 1f - ((speed - minSpeed) / (maxSpeed - minSpeed)).coerceIn(0f, 1f)
+                            val y = normalizedY * (height - 10f) + 5f
+
+                            if (index == 0) gpsPath.moveTo(x, y) else gpsPath.lineTo(x, y)
+                        }
+                        drawPath(
+                            path = gpsPath,
+                            color = NeonGreen,
+                            style = Stroke(width = 2.5.dp.toPx())
+                        )
+                    }
                 }
             }
         }

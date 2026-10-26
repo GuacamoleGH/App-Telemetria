@@ -378,8 +378,21 @@ class SessionManager private constructor(
 
     fun onObdReceived(data: com.telemetria.app.core.obd.model.ObdData) {
         latestObd = data
+        val obdSpd = data.obdSpeedKmh
+        var updatedMaxSpeed = _liveState.value.maxSpeedKmh
+        if (obdSpd != null && obdSpd > updatedMaxSpeed) {
+            updatedMaxSpeed = obdSpd
+        }
+        val currentSpeed = if (_liveState.value.gpsFix) {
+            _liveState.value.currentSpeedKmh
+        } else {
+            obdSpd ?: _liveState.value.currentSpeedKmh
+        }
+
         _liveState.update {
             it.copy(
+                currentSpeedKmh = currentSpeed,
+                maxSpeedKmh = updatedMaxSpeed,
                 isObdConnected = data.isConnected,
                 engineRpm = data.engineRpm,
                 obdSpeedKmh = data.obdSpeedKmh,
@@ -445,6 +458,10 @@ class SessionManager private constructor(
 
             if (currentSpeed > newMaxSpeed) {
                 newMaxSpeed = currentSpeed
+            }
+            val obdSpd = latestObd?.obdSpeedKmh ?: 0f
+            if (obdSpd > newMaxSpeed) {
+                newMaxSpeed = obdSpd
             }
 
             val newCount = _liveState.value.pointCount + 1

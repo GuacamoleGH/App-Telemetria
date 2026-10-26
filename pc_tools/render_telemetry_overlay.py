@@ -39,6 +39,7 @@ def parse_telemetry_csv(csv_path):
                 item = {
                     "t_video": float(row.get("time_offset_video_sec") or 0.0),
                     "speed_kmh": float(row.get("gps_speed_kmh") or 0.0) if row.get("gps_speed_kmh") else None,
+                    "obd_speed_kmh": float(row.get("obd_speed_kmh") or 0.0) if row.get("obd_speed_kmh") else None,
                     "lat_g": float(row.get("lateral_g") or 0.0) if row.get("lateral_g") else 0.0,
                     "long_g": float(row.get("longitudinal_g") or 0.0) if row.get("longitudinal_g") else 0.0,
                     "rpm": int(float(row.get("engine_rpm"))) if row.get("engine_rpm") else None,
@@ -86,6 +87,12 @@ def interpolate_telemetry(data, current_time):
     if p1["speed_kmh"] is not None and p2["speed_kmh"] is not None:
         speed = p1["speed_kmh"] + factor * (p2["speed_kmh"] - p1["speed_kmh"])
 
+    obd_speed = None
+    if p1.get("obd_speed_kmh") is not None and p2.get("obd_speed_kmh") is not None:
+        obd_speed = p1["obd_speed_kmh"] + factor * (p2["obd_speed_kmh"] - p1["obd_speed_kmh"])
+    elif p1.get("obd_speed_kmh") is not None:
+        obd_speed = p1["obd_speed_kmh"]
+
     lat_g = p1["lat_g"] + factor * (p2["lat_g"] - p1["lat_g"])
     long_g = p1["long_g"] + factor * (p2["long_g"] - p1["long_g"])
 
@@ -105,14 +112,15 @@ def interpolate_telemetry(data, current_time):
         boost = p1["boost_bar"]
 
     return {
-        "speed_kmh": speed or 0.0,
+        "speed_kmh": speed if speed is not None else (obd_speed or 0.0),
+        "gps_speed_kmh": speed,
+        "obd_speed_kmh": obd_speed,
         "lat_g": lat_g,
         "long_g": long_g,
         "rpm": rpm,
         "throttle": throttle,
         "gear": gear,
         "boost_bar": boost
-    }
     }
 
 
@@ -200,7 +208,15 @@ def draw_overlay(frame, tel_data, current_time_sec, vehicle_config=None):
         gear_color = (0, 210, 255) if gear != "N" else (0, 180, 255)
         cv2.putText(frame, str(gear), (gx + 18, gy + 50), cv2.FONT_HERSHEY_DUPLEX, 1.1, gear_color, 2, cv2.LINE_AA)
 
-    cv2.putText(frame, "GPS SPEED", (px + 18, py + 105), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (100, 255, 120), 1, cv2.LINE_AA)
+    has_gps = tel_data.get("gps_speed_kmh") is not None
+    has_obd = tel_data.get("obd_speed_kmh") is not None
+    if has_gps and has_obd:
+        label = f"GPS REAL | OBD {tel_data['obd_speed_kmh']:.0f} KM/H"
+    elif has_obd:
+        label = "OBD-II (RUEDAS)"
+    else:
+        label = "GPS SPEED"
+    cv2.putText(frame, label, (px + 18, py + 105), cv2.FONT_HERSHEY_SIMPLEX, 0.38, (100, 255, 120), 1, cv2.LINE_AA)
 
     # Indicador de Presión de Turbo si existe
     boost = tel_data.get("boost_bar")

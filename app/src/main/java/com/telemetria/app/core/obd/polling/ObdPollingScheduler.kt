@@ -51,10 +51,16 @@ class ObdPollingScheduler(
                 val cycleStart = SystemClock.elapsedRealtimeNanos()
                 loopCycle++
 
-                // 1. ALTA PRIORIDAD: RPM (en cada ciclo para máxima fidelidad en tacómetro y shift lights)
+                // 1. MÁXIMA PRIORIDAD: RPM y Velocidad OBD (en cada ciclo para respuesta inmediata y cálculo instantáneo de marcha)
                 try {
                     val rawRpm = transport.sendCommand("010C", timeoutMillis = 1000L)
                     protocol.parseRpm(rawRpm)?.let { latestRpm = it }
+                    recordQuerySuccess()
+                } catch (_: Exception) {}
+
+                try {
+                    val rawSpeed = transport.sendCommand("010D", timeoutMillis = 1000L)
+                    protocol.parseSpeed(rawSpeed)?.let { latestSpeed = it }
                     recordQuerySuccess()
                 } catch (_: Exception) {}
 
@@ -66,14 +72,8 @@ class ObdPollingScheduler(
                     recordQuerySuccess()
                 } catch (_: Exception) {}
 
-                // 3. MEDIA PRIORIDAD: Velocidad OBD y Presión MAP / Turbo (cada 2 ciclos)
+                // 3. MEDIA PRIORIDAD: Presión MAP / Turbo (cada 2 ciclos)
                 if (loopCycle % 2 == 0) {
-                    try {
-                        val rawSpeed = transport.sendCommand("010D", timeoutMillis = 1000L)
-                        protocol.parseSpeed(rawSpeed)?.let { latestSpeed = it }
-                        recordQuerySuccess()
-                    } catch (_: Exception) {}
-
                     if (protocol.isPidSupported("010B")) {
                         try {
                             val rawMap = transport.sendCommand("010B", timeoutMillis = 1000L)
