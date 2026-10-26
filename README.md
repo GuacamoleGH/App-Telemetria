@@ -15,7 +15,7 @@
   <b>Una aplicación nativa moderna, offline y sin suscripciones inspirada en los tableros de competición AiM MyChron 5, MoTeC y sistemas de telemetría profesional tipo RaceRender / RaceChrono.</b>
 </p>
 
-[📥 Descargar APK Precompilado](apk/Tachyon.apk) • [🏎️ Características](#-características-principales) • [⚡ Motor OBD-II](#-motor-obd-ii-de-alta-frecuencia) • [🎬 Renderizador PC](#-renderizado-de-vídeo-y-overlay-en-pc) • [🛠️ Compilación](#-compilación-y-desarrollo)
+[📥 Descargar APK Precompilado](apk/Tachyon.apk) • [🏎️ Características](#-características-principales) • [⚡ Motor OBD-II](#-motor-obd-ii-de-alta-frecuencia) • [🎬 Renderizador PC](#-renderizado-de-vídeo-y-overlay-en-pc) • [🛠️ Instalación y Compilación](INSTALL.md)
 
 </div>
 
@@ -57,8 +57,8 @@ flowchart LR
 2. **`ATAT1` (Adaptive Timing Agresivo):** Ajusta dinámicamente el tiempo de espera del microcontrolador ELM327 a la respuesta exacta de la centralita del coche.
 3. **`ATST19` (Fast Timeout):** Reduce el tiempo de descarte a 100 ms para no bloquear el bucle de lectura si un parámetro opcional no está soportado.
 4. **Planificador Adaptativo por Prioridad:**
-   * **Máxima Prioridad (en cada ciclo):** Revoluciones (`010C`) y Posición del Acelerador (`0149` / `0111`).
-   * **Media Prioridad (cada 2 ciclos):** Velocidad OBD (`010D`) y Presión de Turbo/MAP (`010B`).
+   * **Máxima Prioridad (en cada ciclo):** Revoluciones (`010C`), Velocidad de Ruedas OBD (`010D`) y Posición del Acelerador (`0149` / `0111`).
+   * **Media Prioridad (cada 2 ciclos):** Presión de Sobrealimentación Turbo / MAP (`010B`).
    * **Prioridad Regular (cada 4 ciclos):** Sensor MAF (`0110`) o Caudal de Combustible (`015E`).
    * **Baja Prioridad Amortizada (cada 15 ciclos):** Temperatura de refrigerante (`0105`), Temperatura de admisión IAT (`010F`), Carga motor (`0104`) y Presión barométrica (`0133`).
 
@@ -70,13 +70,13 @@ flowchart LR
 | :--- | :---: | :---: | :---: | :---: |
 | **Tiempo Monotónico** | Kernel Android | `ns` / `ms` | 10 – 50 Hz | Base de Datos, CSV, Overlay |
 | **Posición y Elevación** | GPS / GNSS | `lat, lon, alt` | 1 – 10 Hz | Base de Datos, GPX, CSV |
-| **Velocidad GPS** | Fused Location | `km/h` | 1 – 10 Hz | Base de Datos, CSV, Overlay |
+| **Velocidad GPS** | Fused Location | `km/h` | 1 – 10 Hz | Base de Datos, CSV, Cockpit, Overlay |
+| **Velocidad Ruedas OBD** | OBD `010D` | `km/h` | Alta frecuencia (~15-20 Hz) | Base de Datos, CSV, Cockpit, Overlay |
 | **Fuerzas G (Lat / Long)** | Acelerómetro IMU | `g` | 50 Hz (10 Hz log) | Base de Datos, CSV, Overlay |
 | **Marcha Actual** | Estimador Dinámico | `1ª..7ª, N, R` | En tiempo real | Base de Datos, CSV, Overlay |
-| **Régimen de Giro** | OBD `010C` | `RPM` | Alta frecuencia | Base de Datos, CSV, Overlay |
-| **Pedal / Acelerador** | OBD `0149` / `0111` | `%` | Alta frecuencia | Base de Datos, CSV, Overlay |
+| **Régimen de Giro** | OBD `010C` | `RPM` | Alta frecuencia (~15-20 Hz) | Base de Datos, CSV, Overlay |
+| **Pedal / Acelerador** | OBD `0149` / `0111` | `%` | Alta frecuencia (~15-20 Hz) | Base de Datos, CSV, Overlay |
 | **Presión del Turbo** | OBD `010B` - `0133` | `bar` | Media frecuencia | Base de Datos, CSV, Overlay |
-| **Velocidad Ruedas OBD** | OBD `010D` | `km/h` | Media frecuencia | Base de Datos, CSV |
 | **Consumo Instantáneo** | OBD `015E` / MAF | `L/100km`, `L/h`| Frecuencia regular | Base de Datos, CSV |
 | **Temperatura Admisión** | OBD `010F` | `°C` | Baja frecuencia | Base de Datos, CSV |
 | **Temperatura Motor** | OBD `0105` | `°C` | Baja frecuencia | Base de Datos, CSV |
@@ -103,38 +103,17 @@ python render_telemetry_overlay.py --zip ruta/a/tu/sesion_bundle.zip --out video
 
 ---
 
-## 📱 Instalación Rápida
+## 🚀 Instalación y Compilación
 
-### Opción A: Descarga Directa
-Descarga el archivo APK directamente a tu teléfono e instálalo:
-👉 [**Descargar `apk/Tachyon.apk`**](apk/Tachyon.apk)
+Para consultar los requisitos completos de compilación, comandos de Gradle, configuración de las herramientas de escritorio y guía de resolución de problemas, consulta la guía dedicada:
 
-### Opción B: Instalación vía ADB
-Con el teléfono conectado por cable USB con depuración activada:
-```bash
-adb install -r apk/Tachyon.apk
-```
+👉 [**📖 Ver Guía de Instalación y Compilación (INSTALL.md)**](INSTALL.md)
 
----
-
-## 🛠️ Compilación y Desarrollo
-
-### Requisitos:
-* **JDK 17 LTS**
-* **Android SDK 34** (Build Tools 34.0.0+)
-* **Gradle Wrapper** (incluido en el repositorio)
-
-```bash
-# Clonar el repositorio
-git clone https://github.com/GuacamoleGH/Tachyon.git
-cd Tachyon
-
-# Ejecutar el conjunto de pruebas unitarias
-./gradlew testDebugUnitTest
-
-# Compilar APK de depuración
-./gradlew assembleDebug
-```
+### Resumen Rápido:
+* **📥 Descarga Directa del APK:** [**`apk/Tachyon.apk`**](apk/Tachyon.apk)
+* **⚡ Instalación rápida vía ADB:** `adb install -r apk/Tachyon.apk`
+* **🛠️ Compilación del proyecto:** `./gradlew assembleDebug` (requiere JDK 17 y Android SDK 34)
+* **🎬 Herramientas de PC:** `python pc_tools/render_telemetry_overlay.py --zip sesion.zip --out video.mp4`
 
 ---
 
