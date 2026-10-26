@@ -11,7 +11,7 @@ import java.util.Locale
 
 object CsvExporter {
 
-    private const val CSV_HEADER = "time_offset_video_sec,time_offset_session_sec,timestamp_utc_ms,iso_time,monotonic_nanos,latitude,longitude,altitude_m,gps_speed_kmh,bearing_deg,accuracy_m,lateral_g,longitudinal_g,engine_rpm,obd_speed_kmh,throttle_pct,coolant_temp_c,accel_x,accel_y,accel_z\n"
+    private const val CSV_HEADER = "time_offset_video_sec,time_offset_session_sec,timestamp_utc_ms,iso_time,monotonic_nanos,latitude,longitude,altitude_m,gps_speed_kmh,bearing_deg,accuracy_m,lateral_g,longitudinal_g,engine_rpm,obd_speed_kmh,throttle_pct,coolant_temp_c,gear,boost_bar,fuel_l100km,intake_temp_c,accel_x,accel_y,accel_z\n"
 
     fun exportToCsv(session: SessionEntity, points: List<TelemetryPointEntity>, outputFile: File): Boolean {
         return try {
@@ -48,6 +48,10 @@ object CsvExporter {
                         append(p.obdSpeedKmh?.let { String.format(Locale.US, "%.1f", it) } ?: "").append(",")
                         append(p.throttlePercent?.let { String.format(Locale.US, "%.1f", it) } ?: "").append(",")
                         append(p.coolantTempC?.toString() ?: "").append(",")
+                        append(p.gear ?: "").append(",")
+                        append(p.boostPressureBar?.let { String.format(Locale.US, "%.2f", it) } ?: "").append(",")
+                        append(p.fuelConsumptionL100km?.let { String.format(Locale.US, "%.2f", it) } ?: "").append(",")
+                        append(p.intakeAirTempC?.toString() ?: "").append(",")
                         append(p.accelX?.let { String.format(Locale.US, "%.3f", it) } ?: "").append(",")
                         append(p.accelY?.let { String.format(Locale.US, "%.3f", it) } ?: "").append(",")
                         append(p.accelZ?.let { String.format(Locale.US, "%.3f", it) } ?: "")

@@ -40,7 +40,11 @@ data class TelemetryPointEntity(
     val obdSpeedKmh: Float? = null,
     val throttlePercent: Float? = null,
     val coolantTempC: Int? = null,
-    val engineLoadPercent: Float? = null
+    val engineLoadPercent: Float? = null,
+    val intakeAirTempC: Int? = null,
+    val boostPressureBar: Float? = null,
+    val fuelConsumptionL100km: Float? = null,
+    val gear: String? = null
 ) {
     fun toDomain(): TelemetryPoint = TelemetryPoint(
         id = id,
@@ -63,7 +67,11 @@ data class TelemetryPointEntity(
         obdSpeedKmh = obdSpeedKmh,
         throttlePercent = throttlePercent,
         coolantTempC = coolantTempC,
-        engineLoadPercent = engineLoadPercent
+        engineLoadPercent = engineLoadPercent,
+        intakeAirTempC = intakeAirTempC,
+        boostPressureBar = boostPressureBar,
+        fuelConsumptionL100km = fuelConsumptionL100km,
+        gear = gear
     )
 
     companion object {
@@ -88,7 +96,11 @@ data class TelemetryPointEntity(
             obdSpeedKmh = point.obdSpeedKmh,
             throttlePercent = point.throttlePercent,
             coolantTempC = point.coolantTempC,
-            engineLoadPercent = point.engineLoadPercent
+            engineLoadPercent = point.engineLoadPercent,
+            intakeAirTempC = point.intakeAirTempC,
+            boostPressureBar = point.boostPressureBar,
+            fuelConsumptionL100km = point.fuelConsumptionL100km,
+            gear = point.gear
         )
     }
 }

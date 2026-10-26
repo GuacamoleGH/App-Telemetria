@@ -65,9 +65,10 @@ class BleObdTransport(private val context: Context) : ObdTransport {
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
             when (newState) {
                 BluetoothProfile.STATE_CONNECTED -> {
-                    _connectionState.value = ObdConnectionState.DiscoveringServices("Conectado a GATT. Descubriendo servicios...")
-                    // Solicitar aumento de MTU para acelerar transferencias
+                    _connectionState.value = ObdConnectionState.DiscoveringServices("Conectado a GATT. Optimizando enlace BLE...")
+                    // Negociar prioridad alta de conexión para latencia ultrabaja (intervalo de conexión 7.5ms - 11.25ms)
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
                         gatt.requestMtu(256)
                     }
                     gatt.discoverServices()
@@ -94,6 +95,9 @@ class BleObdTransport(private val context: Context) : ObdTransport {
             // Descubrimiento dinámico de características Write y Notify
             val discovered = resolveGattCharacteristics(gatt)
             if (discovered) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+                }
                 _connectionState.value = ObdConnectionState.InitializingElm327
             } else {
                 _connectionState.value = ObdConnectionState.Error("No se encontraron características GATT compatibles de transmisión OBD-II")

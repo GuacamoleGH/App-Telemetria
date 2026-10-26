@@ -101,5 +101,81 @@ class Elm327ProtocolTest {
         assertNull(protocol.parseRpm("SEARCHING...\rUNABLE TO CONNECT\r>"))
         assertNull(protocol.parseRpm("CAN ERROR\r>"))
     }
+
+    @Test
+    fun parseMap_decodesKpa() {
+        // 41 0B C8 -> 0xC8 = 200 kPa (aprox 2.0 bar absoluto)
+        val raw = "41 0B C8\r>"
+        val map = protocol.parseMap(raw)
+        assertEquals(200.0f, map ?: 0f, 0.01f)
+    }
+
+    @Test
+    fun parseIntakeAirTemp_decodesDegreesCelsius() {
+        // 41 0F 46 -> 0x46 = 70 -> 70 - 40 = 30 °C
+        val raw = "41 0F 46\r>"
+        val iat = protocol.parseIntakeAirTemp(raw)
+        assertEquals(30, iat)
+    }
+
+    @Test
+    fun parseMaf_decodesGramsPerSec() {
+        // 41 10 08 FC -> ((8 * 256) + 252) / 100 = 23.00 g/s
+        val raw = "41 10 08 FC\r>"
+        val maf = protocol.parseMaf(raw)
+        assertEquals(23.00f, maf ?: 0f, 0.01f)
+    }
+
+    @Test
+    fun parseFuelRate_decodesLitersPerHour() {
+        // 41 5E 00 64 -> (0 + 100) * 0.05 = 5.0 L/h
+        val raw = "41 5E 00 64\r>"
+        val rate = protocol.parseFuelRate(raw)
+        assertEquals(5.0f, rate ?: 0f, 0.01f)
+    }
+
+    @Test
+    fun calculateGear_estimatesRatiosCorrectly() {
+        // 2000 RPM a 20 km/h -> ratio = 100 -> 1ª marcha
+        assertEquals("1", Elm327Protocol.calculateGear(20.0f, 2000))
+
+        // 3000 RPM a 40 km/h -> ratio = 75 -> 2ª marcha
+        assertEquals("2", Elm327Protocol.calculateGear(40.0f, 3000))
+
+        // 3000 RPM a 60 km/h -> ratio = 50 -> 3ª marcha
+        assertEquals("3", Elm327Protocol.calculateGear(60.0f, 3000))
+
+        // 3000 RPM a 85 km/h -> ratio = 35.29 -> 4ª marcha
+        assertEquals("4", Elm327Protocol.calculateGear(85.0f, 3000))
+
+        // 2500 RPM a 100 km/h -> ratio = 25 -> 5ª marcha
+        assertEquals("5", Elm327Protocol.calculateGear(100.0f, 2500))
+
+        // 2400 RPM a 130 km/h -> ratio = 18.46 -> 6ª marcha
+        assertEquals("6", Elm327Protocol.calculateGear(130.0f, 2400))
+
+        // Coche parado / ralentí -> N
+        assertEquals("N", Elm327Protocol.calculateGear(0.0f, 800))
+    }
+
+    @Test
+    fun calculateBoostBar_estimatesPressureRelativeToAtmosphere() {
+        // 200 kPa MAP con 101.3 kPa barométrica = ~ +0.987 bar de turbo
+        val boost = Elm327Protocol.calculateBoostBar(200.0f, 101.3f)
+        assertTrue("Boost should be around +0.99 bar", (boost ?: 0f) in 0.98f..0.99f)
+
+        // En atmosférico (101.3 kPa) -> 0.0 bar
+        val boostAtm = Elm327Protocol.calculateBoostBar(101.3f, 101.3f)
+        assertEquals(0.0f, boostAtm ?: 0f, 0.01f)
+    }
+
+    @Test
+    fun calculateFuelConsumption_estimatesL100kmFromMaf() {
+        // 25 g/s MAF a 100 km/h:
+        // rateLh = (25 * 3600) / (14.7 * 740) = 90000 / 10878 = 8.27 L/h
+        // consumptionL100km = (8.27 / 100) * 100 = 8.27 L/100km
+        val (_, consumption) = Elm327Protocol.calculateFuelConsumption(100.0f, 25.0f, null)
+        assertTrue("Consumption should be around 8.27 L/100km", (consumption ?: 0f) in 8.2f..8.4f)
+    }
 }
 

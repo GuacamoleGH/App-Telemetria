@@ -223,6 +223,7 @@ private fun DashboardPortraitContent(
         SpeedGauge(
             speedKmh = liveState.currentSpeedKmh,
             isGpsValid = liveState.gpsFix,
+            gear = liveState.calculatedGear,
             speedFontSize = if (isVideoEnabled) 52.sp else 68.sp,
             unitFontSize = if (isVideoEnabled) 14.sp else 16.sp,
             verticalPadding = if (isVideoEnabled) 6.dp else 12.dp,
@@ -330,6 +331,25 @@ private fun DashboardPortraitContent(
                         .weight(1f)
                         .fillMaxHeight()
                 )
+
+                val extraTitle = if (liveState.boostPressureBar != null) "Turbo" else if (liveState.fuelConsumptionL100km != null) "Consumo" else null
+                val extraValue = if (liveState.boostPressureBar != null) {
+                    val b = liveState.boostPressureBar
+                    if (b >= 0f) String.format(java.util.Locale.US, "+%.2f bar", b) else String.format(java.util.Locale.US, "%.2f bar", b)
+                } else if (liveState.fuelConsumptionL100km != null) {
+                    String.format(java.util.Locale.US, "%.1f L/100", liveState.fuelConsumptionL100km)
+                } else null
+
+                if (extraTitle != null && extraValue != null) {
+                    MetricCard(
+                        title = extraTitle,
+                        value = extraValue,
+                        accentColor = NeonAmber,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                    )
+                }
             }
         }
     }
@@ -387,6 +407,7 @@ private fun DashboardLandscapeContent(
                 SpeedGauge(
                     speedKmh = liveState.currentSpeedKmh,
                     isGpsValid = liveState.gpsFix,
+                    gear = liveState.calculatedGear,
                     speedFontSize = 50.sp,
                     unitFontSize = 14.sp,
                     modifier = Modifier.weight(1f)
@@ -410,6 +431,23 @@ private fun DashboardLandscapeContent(
                             accentColor = NeonGreen,
                             modifier = Modifier.weight(1f)
                         )
+
+                        if (liveState.boostPressureBar != null) {
+                            val b = liveState.boostPressureBar
+                            MetricCard(
+                                title = "Turbo",
+                                value = if (b >= 0f) String.format(java.util.Locale.US, "+%.2f bar", b) else String.format(java.util.Locale.US, "%.2f bar", b),
+                                accentColor = NeonAmber,
+                                modifier = Modifier.weight(1f)
+                            )
+                        } else if (liveState.fuelConsumptionL100km != null) {
+                            MetricCard(
+                                title = "Consumo",
+                                value = String.format(java.util.Locale.US, "%.1f L/100", liveState.fuelConsumptionL100km),
+                                accentColor = NeonAmber,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 }
             }

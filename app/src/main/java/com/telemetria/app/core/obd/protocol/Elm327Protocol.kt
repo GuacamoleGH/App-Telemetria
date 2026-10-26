@@ -34,6 +34,14 @@ class Elm327Protocol(private val transport: ObdTransport) {
         // 6. Selección automática de protocolo
         transport.sendCommand("ATSP0")
 
+        // Optimización de velocidad y latencia ELM327:
+        // - ATAT1: Adaptive Timing rápido (no espera timeouts fijos si la ECU responde rápido)
+        // - ATST19: Reducción del timeout a 100 ms (25 x 4ms) para evitar congelaciones en PIDs no soportados
+        // - ATCAF1: Formateo automático de tramas CAN
+        transport.sendCommand("ATAT1")
+        transport.sendCommand("ATST19")
+        transport.sendCommand("ATCAF1")
+
         // 7. Test de conexión con la ECU mediante consulta de PIDs 01-20
         val pids0120 = transport.sendCommand("0100", timeoutMillis = 4000L)
         if (pids0120.contains("UNABLE") || pids0120.contains("ERROR") || pids0120.contains("TIMEOUT")) {
@@ -124,6 +132,100 @@ class Elm327Protocol(private val transport: ObdTransport) {
     fun parseEngineLoad(raw: String): Float? {
         val bytes = extractDataBytes("0104", raw, 1) ?: return null
         return (bytes[0] * 100f) / 255f
+    }
+
+    /**
+     * Presión Absoluta del Colector de Admisión (MAP) - PID 010B. Retorna kPa (0 a 255 kPa).
+     */
+    fun parseMap(raw: String): Float? {
+        val bytes = extractDataBytes("010B", raw, 1) ?: return null
+        return bytes[0].toFloat()
+    }
+
+    /**
+     * Temperatura del aire de admisión (IAT) - PID 010F. Retorna °C (-40 a 215 °C).
+     */
+    fun parseIntakeAirTemp(raw: String): Int? {
+        val bytes = extractDataBytes("010F", raw, 1) ?: return null
+        return bytes[0] - 40
+    }
+
+    /**
+     * Flujo de masa de aire (MAF) - PID 0110. Retorna g/s (0 a 655.35 g/s).
+     */
+    fun parseMaf(raw: String): Float? {
+        val bytes = extractDataBytes("0110", raw, 2) ?: return null
+        val a = bytes[0]
+        val b = bytes[1]
+        return ((a * 256) + b) / 100f
+    }
+
+    /**
+     * Consumo directo de combustible (Engine Fuel Rate) - PID 015E. Retorna L/h.
+     */
+    fun parseFuelRate(raw: String): Float? {
+        val bytes = extractDataBytes("015E", raw, 2) ?: return null
+        val a = bytes[0]
+        val b = bytes[1]
+        return ((a * 256) + b) * 0.05f
+    }
+
+    /**
+     * Presión barométrica ambiental - PID 0133. Retorna kPa (0 a 255 kPa).
+     */
+    fun parseBarometricPressure(raw: String): Float? {
+        val bytes = extractDataBytes("0133", raw, 1) ?: return null
+        return bytes[0].toFloat()
+    }
+
+    companion object {
+        /**
+         * Calcula la marcha actual engranada (1ª a 7ª, N o R) según la relación entre RPM y velocidad km/h.
+         */
+        fun calculateGear(speedKmh: Float?, rpm: Int?): String {
+            if (speedKmh == null || rpm == null || speedKmh < 4.0f || rpm < 450) {
+                return "N"
+            }
+            val ratio = rpm / speedKmh
+            return when {
+                ratio > 98.0f -> "1"
+                ratio > 60.0f -> "2"
+                ratio > 41.0f -> "3"
+                ratio > 30.0f -> "4"
+                ratio > 22.0f -> "5"
+                ratio > 16.0f -> "6"
+                ratio > 11.0f -> "7"
+                else -> "N"
+            }
+        }
+
+        /**
+         * Calcula la presión de sobrealimentación (Turbo / Boost) en bar restando la presión barométrica
+         * (por defecto 101.3 kPa al nivel del mar). Valores positivos representan presión positiva del turbo.
+         */
+        fun calculateBoostBar(mapKpa: Float?, baroKpa: Float? = 101.3f): Float? {
+            if (mapKpa == null) return null
+            val ambient = baroKpa ?: 101.3f
+            val boostKpa = mapKpa - ambient
+            return boostKpa / 100.0f
+        }
+
+        /**
+         * Calcula el consumo instantáneo de combustible en L/h y L/100 km a partir del sensor MAF
+         * o del caudal directo de combustible (PID 015E).
+         */
+        fun calculateFuelConsumption(
+            speedKmh: Float?,
+            mafGps: Float?,
+            fuelRateLh: Float?
+        ): Pair<Float?, Float?> {
+            val rateLh = fuelRateLh ?: mafGps?.let { (it * 3600f) / (14.7f * 740f) }
+            val consumptionL100km = if (rateLh != null && speedKmh != null && speedKmh >= 5.0f) {
+                (rateLh / speedKmh) * 100.0f
+            } else null
+
+            return Pair(rateLh, consumptionL100km)
+        }
     }
 
     /**

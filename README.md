@@ -1,181 +1,151 @@
-# Tachyon - Telemetría para Coches de Calle y Circuito
+<div align="center">
 
-[![Download APK](https://img.shields.io/badge/Download-APK-brightgreen?style=for-the-badge&logo=android)](apk/Tachyon.apk)
+# ⚡ TACHYON
 
-> 📲 **Descarga directa:** Puedes descargar e instalar la aplicación lista para usar directamente desde el repositorio: [**`apk/Tachyon.apk`**](apk/Tachyon.apk).
+### *Telemetría Automovilística de Alto Rendimiento para Circuito y Carretera*
 
-App nativa para Android (Kotlin + Jetpack Compose) de telemetría automovilística de alto rendimiento diseñada para carretera y circuito:
+[![Android](https://img.shields.io/badge/Android-8.0%2B%20(API%2026%2B)-3DDC84?style=for-the-badge&logo=android&logoColor=white)](https://developer.android.com)
+[![Kotlin](https://img.shields.io/badge/Kotlin-1.9.22-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![CameraX](https://img.shields.io/badge/CameraX-FHD%201080p-FF6F00?style=for-the-badge&logo=google&logoColor=white)](https://developer.android.com/training/camerax)
+[![OBD-II BLE](https://img.shields.io/badge/OBD--II-BLE%20High%20Speed-00E5FF?style=for-the-badge&logo=bluetooth&logoColor=black)](https://www.bluetooth.com)
+[![Download APK](https://img.shields.io/badge/Descargar-Tachyon.apk-00E676?style=for-the-badge&logo=android&logoColor=black)](apk/Tachyon.apk)
 
-- **Instrumentación estilo MyChron 5**: Pantalla de alto contraste (negro OLED, tacómetro por LEDs de color con shift light, velocímetro digital central, fuerzas G laterales y longitudinales, pedales y estado de enlace).
-- **Ajustes de Tacómetro y Shift Lights de Competición**: Calibración personalizada del régimen de giro de tu vehículo (RPM máximas, inicio de línea roja / corte, y punto de activación del aviso de cambio estroboscópico tipo GT3 / F1 con badge parpadeante `⚡ SHIFT`). Se almacena en preferencias y se exporta a `session.json` para renderizar el tablero fiel a tu coche en el overlay del vídeo en PC.
-- **Registro estilo Strava**: Grabación continua de salidas en segundo plano, cálculo de distancias geodésicas en tiempo real, mapa offline y consulta de historial sin conexión ni cuentas.
-- **Vídeo con Telemetría Sincronizada estilo RaceRender**: Grabación de vídeo nítido (CameraX) con registro de marca de tiempo monotónica a nivel de hardware, exportación a ZIP (`video.mp4`, `telemetria.csv`, `ruta.gpx`, `session.json`) y script autónomo en Python + OpenCV para renderizar el overlay en PC sin coste de procesamiento en el móvil.
-- **Integración OBD-II Bluetooth Low Energy (Veepeak OBDCheck BLE)**: Conexión BLE directa (GATT), descubrimiento dinámico de características NOTIFY y WRITE, implementación completa del protocolo ELM327 y planificador de consulta adaptativa por prioridad (RPM y acelerador a máxima frecuencia, temperaturas y carga a baja frecuencia).
-- **100% Offline & Local**: Sin dependencias de servicios de pago, sin suscripciones, sin envío de datos a la nube.
+<p align="center">
+  <b>Una aplicación nativa moderna, offline y sin suscripciones inspirada en los tableros de competición AiM MyChron 5, MoTeC y sistemas de telemetría profesional tipo RaceRender / RaceChrono.</b>
+</p>
+
+[📥 Descargar APK Precompilado](apk/Tachyon.apk) • [🏎️ Características](#-características-principales) • [⚡ Motor OBD-II](#-motor-obd-ii-de-alta-frecuencia) • [🎬 Renderizador PC](#-renderizado-de-vídeo-y-overlay-en-pc) • [🛠️ Compilación](#-compilación-y-desarrollo)
+
+</div>
 
 ---
 
 ## 🏎️ Características Principales
 
-| Módulo                  | Descripción                                                                                                                                                                                                                                                                                                             |
-| :---------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Cockpit / Dashboard** | Tacómetro visual (0-8000 RPM con zonas verde, amarilla y roja), velocímetro de gran tamaño, acelerómetro 2D (círculo de Kamm con fuerzas G longitudinal y lateral), telemetría OBD-II (pedal acelerador %, carga de motor %, temperatura de refrigerante °C).                                                           |
-| **Sensores Inerciales** | Muestreo a 50 Hz de acelerómetro y giroscopio (`SensorManager`), calibración de orientación del móvil respecto a los ejes del vehículo mediante botón de tara en reposo. Distinción estricta entre fuerzas inerciales y aceleración derivada por GPS.                                                                   |
-| **Cámara & Vídeo**      | Grabación de vídeo limpio en segundo plano con CameraX (`VideoCapture`), vinculación temporal monotónica (`SystemClock.elapsedRealtimeNanos()`), control de almacenamiento (mínimo 500 MB libres para seguridad).                                                                                                       |
-| **OBD-II BLE**          | Soporte para adaptadores ELM327 BLE (Veepeak OBDCheck BLE). Descubrimiento dinámico de GATT (servicio `0000FFF0...` o fallback universal a NOTIFY+WRITE), parseo de tramas fragmentadas por MTU, detección automática de PIDs soportados (`0100`, `0120`, `0140`), y medición en tiempo real de Hz efectivos por canal. |
-| **Exportación**         | Generador de paquetes ZIP por sesión con estructura compatible con RaceRender y software de edición de vídeo en PC.                                                                                                                                                                                                     |
-| **Post-procesado PC**   | Script Python con OpenCV y FFmpeg (`pc_tools/render_telemetry_overlay.py`) para renderizar el panel MyChron 5 como overlay sobre el vídeo original con precisión de milisegundos.                                                                                                                                       |
+### 🏁 Instrumentación Cockpit (Estilo Competición / MyChron 5)
+* **Tacómetro Dinámico con Shift Lights Estroboscópicos:** Escala de revoluciones de respuesta inmediata con luces LED en verde, ámbar y rojo. Al alcanzar el régimen de corte configurado, activa una alerta visual estroboscópica `⚡ SHIFT` inspirada en volantes de F1 y GT3.
+* **Indicador de Marcha en Tiempo Real (Gear):** Cálculo continuo del cambio engranado (`1ª` a `7ª`, `N` o `R`) en tiempo real mediante relaciones angulares entre régimen de giro y velocidad.
+* **Velocímetro Digital:** Velocidad GPS geodésica de alta fidelidad con control de enlace satelital.
+* **Círculo de Adherencia de Kamm (G-Meter 2D):** Acelerómetro inercial de dos ejes con detección simultánea de aceleración lateral (curva) y longitudinal (frenada / aceleración) con botón de tara en reposo.
+* **Telemetría de Motor en Vivo:** Presión de sobrealimentación de turbo (`Turbo bar`), pedal del acelerador (`% TPS`), temperatura del refrigerante (`°C`) y consumo instantáneo (`L/100km`).
+* **PiP de Cámara Integrada:** Previsualización fluida de vídeo en el cuadro de mandos con reconexión en caliente sin cortes al girar entre vertical y horizontal.
 
 ---
 
-## 🛠️ Arquitectura y Tecnologías
-
-- **Lenguaje & UI**: Kotlin 1.9.22, Jetpack Compose, Material 3, Arquitectura limpia MVVM, Corrutinas y Flow reactivo.
-- **Base de Datos**: Room (SQLite) con transacciones por lotes (`TelemetryBatchWriter` vía `Channel`) y modo WAL (_Write-Ahead Logging_).
-- **Ubicación & GPS**: `FusedLocationProviderClient` ejecutado dentro de un Foreground Service con `FOREGROUND_SERVICE_LOCATION`, `WAKE_LOCK` y notificación persistente.
-- **Sensores**: `Sensor.TYPE_LINEAR_ACCELERATION`, `TYPE_ACCELEROMETER`, `TYPE_GYROSCOPE` con matriz de proyección de ejes.
-- **Bluetooth**: Android BLE API (BluetoothGatt), MTU reassembly y buffers de acumulación hasta prompt `>`.
-- **Cámara**: AndroidX CameraX (Core, Camera2, Lifecycle, Video, View).
-- **Mapa**: Osmdroid (OpenStreetMap local sin API keys ni suscripciones).
-- **Gráficas**: Canvas nativo de Jetpack Compose optimizado a 60/120 fps.
+### ⏱️ Adquisición y Sincronización Monotónica a Nivel de Hardware
+* **Reloj Dual Monotónico:** La cámara y la telemetría registran marcas temporales basadas en `SystemClock.elapsedRealtimeNanos()` del kernel de Android. Cero desincronización, incluso frente a cambios de huso horario o saltos UTC de red.
+* **Base de Datos SQLite WAL de Alta Concurrencia:** Registro por lotes (`TelemetryBatchWriter`) a ~10-50 Hz mediante corrutinas de Kotlin sin congelar la interfaz de usuario.
+* **Grabación Continua en Segundo Plano:** Foreground Service persistente con gestión de energía wakelock para evitar que el sistema operativo suspenda la grabación en tandas largas de circuito.
 
 ---
 
-## 📁 Estructura del Proyecto
+## ⚡ Motor OBD-II de Alta Frecuencia
 
-```text
-app/src/main/java/com/telemetria/app/
-├── core/
-│   ├── database/        # Room Database (v2 con soporte de vídeo), DAOs y entidades
-│   ├── export/          # Exportadores GPX, CSV, JSON metadata y empaquetador ZIP
-│   ├── location/        # Fused Location Provider, Foreground Service y gestión de batería
-│   ├── model/           # Modelos de dominio (Session, TelemetryPoint, SessionLiveState)
-│   ├── obd/             # Capa OBD-II BLE:
-│   │   ├── model/       # ObdData, ObdConnectionState
-│   │   ├── polling/     # ObdPollingScheduler (bucle adaptativo por prioridad y medición de Hz)
-│   │   ├── protocol/    # Elm327Protocol (comandos AT, máscaras de bits de PIDs y decodificadores)
-│   │   ├── scanner/     # BleScannerHelper (escaneo de dispositivos BLE en tiempo real)
-│   │   ├── transport/   # ObdTransport (interfaz abstracta desacoplada del medio físico)
-│   │   └── ObdManager.kt# Orquestador del ciclo de vida OBD-II
-│   ├── sensor/          # SensorManager (50 Hz) y OrientationCalibrator
-│   ├── session/         # SessionManager y TelemetryBatchWriter
-│   ├── util/            # Cálculo geodésico Haversine y formateadores de datos
-│   └── video/           # CameraX VideoRecordingManager y StorageSpaceHelper
-├── ui/
-│   ├── dashboard/       # Cockpit MyChron 5 (tacómetro, velocímetro, fuerzas G, PiP de cámara)
-│   ├── history/         # Lista de sesiones, detalle, mapa de ruta, gráficas de velocidad y exportación ZIP
-│   ├── navigation/      # Navegación entre pantallas
-│   └── theme/           # Paleta de colores de alto contraste deportivo (Cockpit OLED)
-pc_tools/
-├── render_telemetry_overlay.py  # Script CLI en Python para renderizar telemetría sobre el vídeo
-├── requirements.txt             # Dependencias (opencv-python)
-└── README.md                    # Guía paso a paso de uso en PC
+Tachyon incorpora un controlador **Bluetooth Low Energy (GATT)** optimizado para exprimir el máximo ancho de banda de adaptadores ELM327 como el **Veepeak OBDCheck BLE**:
+
+```mermaid
+flowchart LR
+    A["ECU del Vehículo\n(Bus CAN 500 kbps)"] <--> B["Adaptador Veepeak BLE\n(Chip ELM327)"]
+    B <-->|"GATT High Priority\n(Intervalo 7.5 - 11 ms)"| C["Tachyon Android Core\n(ObdPollingScheduler)"]
+    C --> D["Cockpit UI\n(120 Hz)"]
+    C --> E["Batch Writer\n(SQLite WAL)"]
 ```
 
+### 🚀 Optimizaciones de Latencia Implementadas:
+1. **`CONNECTION_PRIORITY_HIGH`:** Fuerza al subsistema Bluetooth de Android a solicitar un intervalo de conexión de **7.5 a 11.25 ms** (en lugar de los 40-50 ms estándar).
+2. **`ATAT1` (Adaptive Timing Agresivo):** Ajusta dinámicamente el tiempo de espera del microcontrolador ELM327 a la respuesta exacta de la centralita del coche.
+3. **`ATST19` (Fast Timeout):** Reduce el tiempo de descarte a 100 ms para no bloquear el bucle de lectura si un parámetro opcional no está soportado.
+4. **Planificador Adaptativo por Prioridad:**
+   * **Máxima Prioridad (en cada ciclo):** Revoluciones (`010C`) y Posición del Acelerador (`0149` / `0111`).
+   * **Media Prioridad (cada 2 ciclos):** Velocidad OBD (`010D`) y Presión de Turbo/MAP (`010B`).
+   * **Prioridad Regular (cada 4 ciclos):** Sensor MAF (`0110`) o Caudal de Combustible (`015E`).
+   * **Baja Prioridad Amortizada (cada 15 ciclos):** Temperatura de refrigerante (`0105`), Temperatura de admisión IAT (`010F`), Carga motor (`0104`) y Presión barométrica (`0133`).
+
 ---
 
-## 🚀 Compilación e Instalación
+## 📊 Matriz de Parámetros Registrados
 
-### Requisitos Previos
+| Parámetro | Sensor / PID | Unidad | Frecuencia | Destino |
+| :--- | :---: | :---: | :---: | :---: |
+| **Tiempo Monotónico** | Kernel Android | `ns` / `ms` | 10 – 50 Hz | Base de Datos, CSV, Overlay |
+| **Posición y Elevación** | GPS / GNSS | `lat, lon, alt` | 1 – 10 Hz | Base de Datos, GPX, CSV |
+| **Velocidad GPS** | Fused Location | `km/h` | 1 – 10 Hz | Base de Datos, CSV, Overlay |
+| **Fuerzas G (Lat / Long)** | Acelerómetro IMU | `g` | 50 Hz (10 Hz log) | Base de Datos, CSV, Overlay |
+| **Marcha Actual** | Estimador Dinámico | `1ª..7ª, N, R` | En tiempo real | Base de Datos, CSV, Overlay |
+| **Régimen de Giro** | OBD `010C` | `RPM` | Alta frecuencia | Base de Datos, CSV, Overlay |
+| **Pedal / Acelerador** | OBD `0149` / `0111` | `%` | Alta frecuencia | Base de Datos, CSV, Overlay |
+| **Presión del Turbo** | OBD `010B` - `0133` | `bar` | Media frecuencia | Base de Datos, CSV, Overlay |
+| **Velocidad Ruedas OBD** | OBD `010D` | `km/h` | Media frecuencia | Base de Datos, CSV |
+| **Consumo Instantáneo** | OBD `015E` / MAF | `L/100km`, `L/h`| Frecuencia regular | Base de Datos, CSV |
+| **Temperatura Admisión** | OBD `010F` | `°C` | Baja frecuencia | Base de Datos, CSV |
+| **Temperatura Motor** | OBD `0105` | `°C` | Baja frecuencia | Base de Datos, CSV |
+| **Carga de Motor** | OBD `0104` | `%` | Baja frecuencia | Base de Datos, CSV |
 
-- **JDK**: Versión 17 (Java 17 LTS recomendada).
-- **Android SDK**: Plataforma API 34, Build Tools 34.0.0+.
-- **Dispositivo Android**: Android 8.0 (API 26) o superior con GPS y Bluetooth LE.
+---
 
-### 1. Compilación mediante Terminal (Gradle Wrapper)
+## 🎬 Renderizado de Vídeo y Overlay en PC
+
+Tachyon exporta cada sesión en un único paquete `.zip` preparado para análisis en **RaceRender**, **DashWare** o mediante el **script autónomo de renderizado en Python**:
 
 ```bash
-# Ejecutar todas las pruebas unitarias
-./gradlew testDebugUnitTest
+# 1. Entrar en la carpeta de herramientas de PC
+cd pc_tools
 
-# Compilar el APK de depuración
-./gradlew assembleDebug
+# 2. Instalar dependencias (OpenCV y NumPy)
+pip install -r requirements.txt
+
+# 3. Renderizar el vídeo con el HUD de telemetría completo
+python render_telemetry_overlay.py --zip ruta/a/tu/sesion_bundle.zip --out video_final.mp4
 ```
 
-El archivo APK precompilado se encuentra disponible directamente en la carpeta [`apk/Tachyon.apk`](apk/Tachyon.apk).
-Si compilas manualmente, se ubicará en:
-`app/build/outputs/apk/debug/app-debug.apk`
+> **Consejo:** Si grabaste con el móvil invertido en el salpicadero, puedes añadir `--rotate 180` para girar el metraje automáticamente durante el renderizado.
 
-### 2. Instalación en el Dispositivo
+---
 
-Conecta el teléfono por USB con la depuración USB activada y ejecuta:
+## 📱 Instalación Rápida
 
+### Opción A: Descarga Directa
+Descarga el archivo APK directamente a tu teléfono e instálalo:
+👉 [**Descargar `apk/Tachyon.apk`**](apk/Tachyon.apk)
+
+### Opción B: Instalación vía ADB
+Con el teléfono conectado por cable USB con depuración activada:
 ```bash
 adb install -r apk/Tachyon.apk
 ```
 
 ---
 
-## 📱 Guía de Permisos en Android
+## 🛠️ Compilación y Desarrollo
 
-La aplicación solicita los siguientes permisos en tiempo de ejecución:
-
-1. **Ubicación (`ACCESS_FINE_LOCATION`)**: Necesario para el registro GPS de alta precisión en carretera y circuito.
-2. **Servicio en Primer Plano (`FOREGROUND_SERVICE_LOCATION`)**: Permite continuar grabando aunque la pantalla se apague o cambies de aplicación.
-3. **Cámara y Micrófono (`CAMERA`, `RECORD_AUDIO`)**: Necesarios si se activa la grabación de vídeo.
-4. **Bluetooth en Android 12+ (`BLUETOOTH_SCAN`, `BLUETOOTH_CONNECT`)**: Para escanear y comunicarse con el adaptador Veepeak OBDCheck BLE sin requerir ubicación continua en versiones modernas de Android.
-5. **Exclusión de Ahorro de Batería (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`)**: Crucial para evitar que sistemas como MIUI, EMUI o OneUI suspendan el servicio durante sesiones largas en circuito.
-
----
-
-## 🔌 Conexión con Veepeak OBDCheck BLE
-
-El adaptador **Veepeak OBDCheck BLE** utiliza Bluetooth Low Energy con servicios GATT estándar:
-
-1. Conecta el adaptador en el puerto OBD-II del vehículo (generalmente bajo el volante).
-2. Pon el contacto del coche o arranca el motor.
-3. Abre la app Telemetría y pulsa sobre el indicador **OBD** en el panel superior.
-4. Pulsa **ESCANEAR**. La app listará los dispositivos BLE cercanos con su nivel de señal (RSSI).
-5. Selecciona el dispositivo (suele identificarse como `OBDCheck BLE`, `VEEPEAK` o similar).
-6. La app iniciará la negociación automática:
-   - Negocia MTU ampliado (hasta 256 bytes).
-   - Descubre el servicio GATT (predeterminado `0000FFF0-0000-1000-8000-00805F9B34FB` con características `FFF1` notify y `FFF2` write, o fallback dinámico a cualquier pareja notify/write).
-   - Inicializa el chip (`ATZ`, `ATE0`, `ATL0`, `ATS0`, `ATH0`, `ATSP0`).
-   - Consulta PIDs soportados (`0100`, `0120`, `0140`).
-   - Activa el bucle de sondeo adaptativo midiendo los hercios reales alcanzados.
-
----
-
-## 🎬 Exportación y Sincronización de Vídeo
-
-Cada sesión finalizada puede exportarse directamente desde la pantalla de detalle mediante el botón **EXPORTAR ZIP**.
-
-### Contenido del Archivo ZIP:
-
-- `video.mp4`: Vídeo original limpio grabado con la cámara del dispositivo.
-- `telemetria.csv`: Archivo CSV con marcas de tiempo relativas al inicio del vídeo (`time_offset_video_sec`, siendo `0.000` el instante exacto en que arrancó el frame 0 del vídeo), marcas UTC y nanosegundos monotónicos.
-- `ruta.gpx`: Trazado geodésico estándar con elevación y velocidad para visualizar en Google Earth, Strava o GPX Viewer.
-- `session.json`: Metadatos del vehículo, adaptador, frecuencias alcanzadas por canal y estadísticas de la sesión.
-- `LEEME_SINCRONIZACION.txt`: Instrucciones de importación.
-
-### Renderizado de Telemetría en PC (Herramientas Incluidas)
-
-En la carpeta `pc_tools/` se incluye un script listo para usar:
+### Requisitos:
+* **JDK 17 LTS**
+* **Android SDK 34** (Build Tools 34.0.0+)
+* **Gradle Wrapper** (incluido en el repositorio)
 
 ```bash
-cd pc_tools
-pip install -r requirements.txt
-python render_telemetry_overlay.py --zip ruta/a/tu/sesion.zip --out video_con_telemetria.mp4
+# Clonar el repositorio
+git clone https://github.com/GuacamoleGH/Tachyon.git
+cd Tachyon
+
+# Ejecutar el conjunto de pruebas unitarias
+./gradlew testDebugUnitTest
+
+# Compilar APK de depuración
+./gradlew assembleDebug
 ```
 
-Este script genera el tacómetro, velocímetro y fuerzas G sincronizados cuadro a cuadro con aceleración por hardware mediante FFmpeg.
+---
+
+## 🛡️ Privacidad y Seguridad
+
+* **100% Local & Offline:** Tus salidas, rutas, vídeos y datos de telemetría pertenecen exclusivamente a tu dispositivo. No requiere registro de usuario ni realiza conexiones con servidores externos.
+* **Borrado Seguro:** Al eliminar una sesión desde el historial de la aplicación, se limpian automáticamente todos los archivos asociados (vídeo MP4, paquete ZIP, GPX y CSV).
+* **Seguridad en Carretera:** Diseñado para utilizarse con soportes homologados en pista o circuito cerrado. Configura y calibra la aplicación antes de iniciar la marcha.
 
 ---
 
-## 🧪 Matriz de Verificación y Estado de Pruebas
-
-| Componente                          | Estado         | Verificación Realizada                                               |
-| :---------------------------------- | :------------- | :------------------------------------------------------------------- |
-| Arquitectura Room WAL + Lotes       | **Completado** | Verificado en tests unitarios (`testDebugUnitTest`).                 |
-| Servicio Foreground GPS             | **Completado** | Implementado con notificación y Wakelock. Compilación limpia.        |
-| Sensores Inerciales y Calibración   | **Completado** | Test unitario de proyección vectorial (`OrientationCalibratorTest`). |
-| Cámara y Timestamps Monotónicos     | **Completado** | Test unitario de cálculo de offsets (`StorageAndSyncTest`).          |
-| Exportación CSV / GPX / ZIP         | **Completado** | Tests de estructura y compresión (`ExportTest`, `ZipExportTest`).    |
-| Protocolo ELM327 y PIDs OBD         | **Completado** | Tests con tramas reales de centralita (`Elm327ProtocolTest`).        |
-| Conexión física Veepeak BLE + Coche | **Pendiente**  | Requiere prueba con el hardware físico y coche real del usuario.     |
-
----
-
-## ⚖️ Licencia y Aviso de Seguridad
-
-Esta aplicación es una herramienta de registro, aprendizaje y análisis para aficionados al automovilismo. No es un instrumento de medida homologado. Configura y activa la grabación antes de iniciar la marcha. Conduce con responsabilidad y respeta las normas de tráfico.
+<div align="center">
+  <sub>Desarrollado con pasión para entusiastas del motor, trackdays y tandas en circuito.</sub>
+</div>

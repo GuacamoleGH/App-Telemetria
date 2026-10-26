@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.sp
 import com.telemetria.app.core.util.FormatUtils
 import com.telemetria.app.ui.theme.CockpitBorder
 import com.telemetria.app.ui.theme.CockpitCardBg
+import com.telemetria.app.ui.theme.NeonAmber
+import com.telemetria.app.ui.theme.NeonCyan
 import com.telemetria.app.ui.theme.NeonGreen
 import com.telemetria.app.ui.theme.TextMuted
 import com.telemetria.app.ui.theme.TextSecondary
@@ -33,6 +35,7 @@ import com.telemetria.app.ui.theme.TextSecondary
 fun SpeedGauge(
     speedKmh: Float,
     isGpsValid: Boolean,
+    gear: String? = null,
     modifier: Modifier = Modifier,
     speedFontSize: TextUnit = 68.sp,
     unitFontSize: TextUnit = 16.sp,
@@ -46,6 +49,33 @@ fun SpeedGauge(
             .padding(vertical = verticalPadding, horizontal = 8.dp),
         contentAlignment = Alignment.Center
     ) {
+        if (gear != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(end = 10.dp, top = 6.dp)
+                    .background(Color(0xFF141922), RoundedCornerShape(8.dp))
+                    .border(1.dp, NeonCyan.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "GEAR ",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextSecondary
+                    )
+                    Text(
+                        text = gear,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.Monospace,
+                        color = if (gear == "N") NeonAmber else NeonCyan
+                    )
+                }
+            }
+        }
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center

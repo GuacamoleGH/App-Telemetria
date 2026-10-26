@@ -43,6 +43,8 @@ def parse_telemetry_csv(csv_path):
                     "long_g": float(row.get("longitudinal_g") or 0.0) if row.get("longitudinal_g") else 0.0,
                     "rpm": int(float(row.get("engine_rpm"))) if row.get("engine_rpm") else None,
                     "throttle": float(row.get("throttle_pct")) if row.get("throttle_pct") else None,
+                    "gear": row.get("gear") if row.get("gear") else None,
+                    "boost_bar": float(row.get("boost_bar")) if row.get("boost_bar") else None,
                 }
                 data.append(item)
             except Exception:
@@ -95,12 +97,22 @@ def interpolate_telemetry(data, current_time):
     if p1["throttle"] is not None and p2["throttle"] is not None:
         throttle = p1["throttle"] + factor * (p2["throttle"] - p1["throttle"])
 
+    gear = p1.get("gear") or p2.get("gear")
+    boost = None
+    if p1.get("boost_bar") is not None and p2.get("boost_bar") is not None:
+        boost = p1["boost_bar"] + factor * (p2["boost_bar"] - p1["boost_bar"])
+    elif p1.get("boost_bar") is not None:
+        boost = p1["boost_bar"]
+
     return {
         "speed_kmh": speed or 0.0,
         "lat_g": lat_g,
         "long_g": long_g,
         "rpm": rpm,
-        "throttle": throttle
+        "throttle": throttle,
+        "gear": gear,
+        "boost_bar": boost
+    }
     }
 
 
@@ -162,8 +174,8 @@ def draw_overlay(frame, tel_data, current_time_sec, vehicle_config=None):
             cv2.rectangle(frame, (bar_x - 70, bar_y - 3), (bar_x - 12, bar_y + bar_h + 3), (40, 40, 255), -1)
             cv2.putText(frame, shift_text, (bar_x - 66, bar_y + 14), cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
 
-    # 2. Panel inferior izquierdo: Velocímetro digital grande
-    panel_w = 260
+    # 2. Panel inferior izquierdo: Velocímetro digital grande y Marcha
+    panel_w = 320
     panel_h = 120
     px = 40
     py = h - panel_h - 40
@@ -174,9 +186,27 @@ def draw_overlay(frame, tel_data, current_time_sec, vehicle_config=None):
     cv2.rectangle(frame, (px, py), (px + panel_w, py + panel_h), (50, 60, 75), 1)
 
     speed_str = f"{tel_data['speed_kmh']:.1f}"
-    cv2.putText(frame, speed_str, (px + 20, py + 75), cv2.FONT_HERSHEY_DUPLEX, 2.2, (100, 255, 120), 3, cv2.LINE_AA)
-    cv2.putText(frame, "KM/H", (px + 175, py + 72), cv2.FONT_HERSHEY_DUPLEX, 0.7, (180, 190, 200), 1, cv2.LINE_AA)
-    cv2.putText(frame, "GPS SPEED", (px + 22, py + 105), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (100, 255, 120), 1, cv2.LINE_AA)
+    cv2.putText(frame, speed_str, (px + 15, py + 75), cv2.FONT_HERSHEY_DUPLEX, 2.0, (100, 255, 120), 3, cv2.LINE_AA)
+    cv2.putText(frame, "KM/H", (px + 165, py + 50), cv2.FONT_HERSHEY_DUPLEX, 0.65, (180, 190, 200), 1, cv2.LINE_AA)
+
+    # Indicador de Marcha (Gear) estilo GT3 / TCR
+    gear = tel_data.get("gear")
+    if gear:
+        gx = px + panel_w - 75
+        gy = py + 18
+        cv2.rectangle(frame, (gx, gy), (gx + 60, gy + 58), (20, 26, 35), -1)
+        cv2.rectangle(frame, (gx, gy), (gx + 60, gy + 58), (0, 210, 255), 1)
+        cv2.putText(frame, "GEAR", (gx + 12, gy + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (160, 175, 190), 1, cv2.LINE_AA)
+        gear_color = (0, 210, 255) if gear != "N" else (0, 180, 255)
+        cv2.putText(frame, str(gear), (gx + 18, gy + 50), cv2.FONT_HERSHEY_DUPLEX, 1.1, gear_color, 2, cv2.LINE_AA)
+
+    cv2.putText(frame, "GPS SPEED", (px + 18, py + 105), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (100, 255, 120), 1, cv2.LINE_AA)
+
+    # Indicador de Presión de Turbo si existe
+    boost = tel_data.get("boost_bar")
+    if boost is not None:
+        boost_str = f"TURBO {boost:+.2f} BAR"
+        cv2.putText(frame, boost_str, (px + 140, py + 105), cv2.FONT_HERSHEY_SIMPLEX, 0.42, (0, 210, 255), 1, cv2.LINE_AA)
 
     # 3. Panel inferior derecho: G-Meter circular
     gm_size = 140

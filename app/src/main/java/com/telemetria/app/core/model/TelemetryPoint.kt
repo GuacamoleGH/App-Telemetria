@@ -27,11 +27,15 @@ data class TelemetryPoint(
     val lateralG: Float? = null,
     val longitudinalG: Float? = null,
 
-    // OBD-II (preparado para F6)
+    // OBD-II (Fase 6 y parámetros extendidos)
     val engineRpm: Int? = null,
     val obdSpeedKmh: Float? = null,
     val throttlePercent: Float? = null,
     val coolantTempC: Int? = null,
-    val engineLoadPercent: Float? = null
+    val engineLoadPercent: Float? = null,
+    val intakeAirTempC: Int? = null,
+    val boostPressureBar: Float? = null,
+    val fuelConsumptionL100km: Float? = null,
+    val gear: String? = null
 )
 

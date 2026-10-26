@@ -42,6 +42,11 @@ data class SessionLiveState(
     val throttlePercent: Float? = null,
     val coolantTempC: Int? = null,
     val engineLoadPercent: Float? = null,
+    val intakeAirTempC: Int? = null,
+    val boostPressureBar: Float? = null,
+    val fuelRateLh: Float? = null,
+    val fuelConsumptionL100km: Float? = null,
+    val calculatedGear: String? = null,
     val obdRealHz: Float = 0f,
     val obdProtocolName: String? = null
 )

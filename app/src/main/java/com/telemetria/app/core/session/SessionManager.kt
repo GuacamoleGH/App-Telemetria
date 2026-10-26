@@ -263,7 +263,11 @@ class SessionManager private constructor(
                 obdSpeedKmh = latestObd?.obdSpeedKmh,
                 throttlePercent = latestObd?.throttlePercent,
                 coolantTempC = latestObd?.coolantTempC,
-                engineLoadPercent = latestObd?.engineLoadPercent
+                engineLoadPercent = latestObd?.engineLoadPercent,
+                intakeAirTempC = latestObd?.intakeAirTempC,
+                boostPressureBar = latestObd?.boostPressureBar,
+                fuelConsumptionL100km = latestObd?.fuelConsumptionL100km,
+                gear = latestObd?.calculatedGear
             )
             batchWriter?.enqueue(entity)
         }
@@ -289,6 +293,11 @@ class SessionManager private constructor(
                 throttlePercent = data.throttlePercent,
                 coolantTempC = data.coolantTempC,
                 engineLoadPercent = data.engineLoadPercent,
+                intakeAirTempC = data.intakeAirTempC,
+                boostPressureBar = data.boostPressureBar,
+                fuelRateLh = data.fuelRateLh,
+                fuelConsumptionL100km = data.fuelConsumptionL100km,
+                calculatedGear = data.calculatedGear,
                 obdRealHz = data.realHz
             )
         }
@@ -370,7 +379,11 @@ class SessionManager private constructor(
                 obdSpeedKmh = latestObd?.obdSpeedKmh,
                 throttlePercent = latestObd?.throttlePercent,
                 coolantTempC = latestObd?.coolantTempC,
-                engineLoadPercent = latestObd?.engineLoadPercent
+                engineLoadPercent = latestObd?.engineLoadPercent,
+                intakeAirTempC = latestObd?.intakeAirTempC,
+                boostPressureBar = latestObd?.boostPressureBar,
+                fuelConsumptionL100km = latestObd?.fuelConsumptionL100km,
+                gear = latestObd?.calculatedGear
             )
             batchWriter?.enqueue(entity)
 
