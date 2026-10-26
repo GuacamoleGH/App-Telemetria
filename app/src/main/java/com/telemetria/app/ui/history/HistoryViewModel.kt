@@ -39,6 +39,9 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
     private val _exportMessage = MutableSharedFlow<String>()
     val exportMessage: SharedFlow<String> = _exportMessage.asSharedFlow()
 
+    private val _promptDeleteRawVideoAfterZip = MutableSharedFlow<SessionEntity>()
+    val promptDeleteRawVideoAfterZip: SharedFlow<SessionEntity> = _promptDeleteRawVideoAfterZip.asSharedFlow()
+
     fun loadSessionDetails(sessionId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             val session = db.sessionDao().getSessionById(sessionId)
@@ -104,9 +107,79 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
             withContext(Dispatchers.Main) {
                 if (success) {
                     _exportMessage.emit("Paquete ZIP exportado en: ${zipFile.absolutePath}")
+                    if (doesRawVideoExist(session)) {
+                        _promptDeleteRawVideoAfterZip.emit(session)
+                    }
                 } else {
                     _exportMessage.emit("Error empaquetando ZIP")
                 }
+            }
+        }
+    }
+
+    fun getZipFileForSession(session: SessionEntity): File {
+        val exportDir = getExportDirectory()
+        return File(exportDir, "sesion_${session.id.take(8)}_bundle.zip")
+    }
+
+    fun isZipExported(session: SessionEntity): Boolean {
+        val file = getZipFileForSession(session)
+        return file.exists() && file.length() > 0
+    }
+
+    fun doesRawVideoExist(session: SessionEntity): Boolean {
+        session.videoFilePath?.let { path ->
+            val file = File(path)
+            if (file.exists() && file.length() > 0) return true
+        }
+        val videoDir = File(
+            getApplication<Application>().getExternalFilesDir(Environment.DIRECTORY_MOVIES) ?: getApplication<Application>().filesDir,
+            "telemetria_videos"
+        )
+        return videoDir.exists() && videoDir.listFiles()?.any {
+            it.isFile && (it.name.contains(session.id.take(8)) || it.name.contains(session.id))
+        } == true
+    }
+
+    fun getRawVideoSizeMb(session: SessionEntity): Float {
+        var bytes = 0L
+        session.videoFilePath?.let { path ->
+            val file = File(path)
+            if (file.exists()) bytes += file.length()
+        }
+        if (bytes == 0L) {
+            val videoDir = File(
+                getApplication<Application>().getExternalFilesDir(Environment.DIRECTORY_MOVIES) ?: getApplication<Application>().filesDir,
+                "telemetria_videos"
+            )
+            videoDir.listFiles()?.forEach {
+                if (it.isFile && (it.name.contains(session.id.take(8)) || it.name.contains(session.id))) {
+                    bytes += it.length()
+                }
+            }
+        }
+        return bytes / (1024f * 1024f)
+    }
+
+    fun deleteRawVideo(session: SessionEntity, onDeleted: (() -> Unit)? = null) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val bytesFreed = SessionFileCleaner.deleteRawVideoOnly(getApplication(), session)
+            val updated = db.sessionDao().getSessionById(session.id)
+            _selectedSession.value = updated
+
+            withContext(Dispatchers.Main) {
+                val mbFreed = bytesFreed / (1024f * 1024f)
+                val msg = if (bytesFreed > 0) {
+                    String.format(
+                        java.util.Locale.US,
+                        "Vídeo original eliminado (%.1f MB liberados). Se conserva dentro del archivo .zip en Download/Telemetria",
+                        mbFreed
+                    )
+                } else {
+                    "El vídeo original ya no existe en el almacenamiento interno."
+                }
+                _exportMessage.emit(msg)
+                onDeleted?.invoke()
             }
         }
     }

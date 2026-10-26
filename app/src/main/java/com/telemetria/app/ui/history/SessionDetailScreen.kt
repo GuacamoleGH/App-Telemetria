@@ -1,5 +1,6 @@
 package com.telemetria.app.ui.history
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -45,6 +47,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.telemetria.app.core.database.entity.SessionEntity
 import com.telemetria.app.core.util.FormatUtils
 import com.telemetria.app.ui.dashboard.components.MetricCard
 import com.telemetria.app.ui.history.components.GForceGraph
@@ -75,6 +78,8 @@ fun SessionDetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var postZipPromptSession by remember { mutableStateOf<SessionEntity?>(null) }
+    var showManualDeleteVideoDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(sessionId) {
         viewModel.loadSessionDetails(sessionId)
@@ -84,6 +89,91 @@ fun SessionDetailScreen(
         viewModel.exportMessage.collectLatest { msg ->
             snackbarHostState.showSnackbar(msg)
         }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.promptDeleteRawVideoAfterZip.collectLatest { exportedSession ->
+            postZipPromptSession = exportedSession
+        }
+    }
+
+    if (postZipPromptSession != null) {
+        val target = postZipPromptSession!!
+        val rawSizeMb = viewModel.getRawVideoSizeMb(target)
+        AlertDialog(
+            onDismissRequest = { postZipPromptSession = null },
+            title = {
+                Text(
+                    text = "¡Paquete ZIP exportado!",
+                    color = TextPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "El vídeo y toda la telemetría se han empaquetado de forma segura en:\n\n" +
+                            "📁 Download/Telemetria/sesion_${target.id.take(8)}_bundle.zip\n\n" +
+                            "¿Deseas borrar el archivo de vídeo original de la memoria interna (Movies/telemetria_videos) para liberar ${String.format(java.util.Locale.US, "%.1f MB", rawSizeMb)} manteniendo el archivo .zip?",
+                    color = TextSecondary
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        postZipPromptSession = null
+                        viewModel.deleteRawVideo(target)
+                    }
+                ) {
+                    Text("BORRAR VÍDEO Y LIBERAR ESPACIO", color = NeonGreen, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { postZipPromptSession = null }) {
+                    Text("CONSERVAR AMBOS", color = TextSecondary)
+                }
+            },
+            containerColor = CockpitDarkSurface,
+            shape = RoundedCornerShape(12.dp)
+        )
+    }
+
+    if (showManualDeleteVideoDialog && session != null) {
+        val target = session!!
+        val rawSizeMb = viewModel.getRawVideoSizeMb(target)
+        AlertDialog(
+            onDismissRequest = { showManualDeleteVideoDialog = false },
+            title = {
+                Text(
+                    text = "¿Borrar vídeo original?",
+                    color = TextPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "El archivo ZIP ya existe en 'Download/Telemetria' con la copia completa del vídeo.\n\n" +
+                            "Al borrar el vídeo original de 'telemetria_videos' liberarás ${String.format(java.util.Locale.US, "%.1f MB", rawSizeMb)} de almacenamiento interno. El ZIP permanecerá intacto.",
+                    color = TextSecondary
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showManualDeleteVideoDialog = false
+                        viewModel.deleteRawVideo(target)
+                    }
+                ) {
+                    Text("LIBERAR ESPACIO", color = NeonCyan, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showManualDeleteVideoDialog = false }) {
+                    Text("CANCELAR", color = TextSecondary)
+                }
+            },
+            containerColor = CockpitDarkSurface,
+            shape = RoundedCornerShape(12.dp)
+        )
     }
 
     if (showDeleteDialog && session != null) {
@@ -242,14 +332,16 @@ fun SessionDetailScreen(
                 GForceGraph(points = points)
 
                 // Tarjeta de Vídeo y Sincronización (Fase 4)
-                if (currentSession.videoFilePath != null) {
-                    val videoFile = java.io.File(currentSession.videoFilePath)
-                    val exists = videoFile.exists()
-                    val sizeMb = if (exists) videoFile.length() / (1024f * 1024f) else 0f
-                    val syncOffsetMs = if (currentSession.videoStartMonotonicNanos != null && currentSession.startMonotonicNanos > 0) {
-                        (currentSession.videoStartMonotonicNanos - currentSession.startMonotonicNanos) / 1_000_000L
-                    } else 0L
+                val hasRawVideo = viewModel.doesRawVideoExist(currentSession)
+                val hasZip = viewModel.isZipExported(currentSession)
+                val zipFile = viewModel.getZipFileForSession(currentSession)
+                val rawVideoSizeMb = viewModel.getRawVideoSizeMb(currentSession)
+                val zipSizeMb = if (hasZip) zipFile.length() / (1024f * 1024f) else 0f
+                val syncOffsetMs = if (currentSession.videoStartMonotonicNanos != null && currentSession.startMonotonicNanos > 0) {
+                    (currentSession.videoStartMonotonicNanos - currentSession.startMonotonicNanos) / 1_000_000L
+                } else 0L
 
+                if (hasRawVideo || hasZip || currentSession.videoFilePath != null) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -264,30 +356,98 @@ fun SessionDetailScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "VÍDEO ASOCIADO (CAMERAX)",
+                                    text = "VÍDEO DE SESIÓN",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = TextSecondary
                                 )
                                 Text(
-                                    text = if (exists) String.format(java.util.Locale.US, "%.1f MB", sizeMb) else "NO ENCONTRADO",
+                                    text = when {
+                                        hasRawVideo && hasZip -> "VÍDEO + COPIA EN ZIP"
+                                        hasZip && !hasRawVideo -> "CONSERVADO EN ZIP (LIBERADO)"
+                                        hasRawVideo -> String.format(java.util.Locale.US, "%.1f MB", rawVideoSizeMb)
+                                        else -> "NO ENCONTRADO"
+                                    },
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     fontFamily = FontFamily.Monospace,
-                                    color = if (exists) NeonCyan else NeonRed
+                                    color = when {
+                                        hasZip && !hasRawVideo -> NeonGreen
+                                        hasRawVideo && hasZip -> NeonCyan
+                                        hasRawVideo -> NeonCyan
+                                        else -> NeonRed
+                                    }
                                 )
                             }
 
                             Spacer(modifier = Modifier.height(6.dp))
 
-                            Text(
-                                text = videoFile.name,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = TextPrimary
-                            )
+                            if (hasZip && !hasRawVideo) {
+                                Text(
+                                    text = zipFile.name,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextPrimary
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "El archivo de vídeo original ha sido eliminado de 'telemetria_videos' para ahorrar espacio en la memoria interna. El metraje permanece seguro dentro del archivo ZIP en Download/Telemetria (${String.format(java.util.Locale.US, "%.1f MB", zipSizeMb)}).",
+                                    fontSize = 12.sp,
+                                    color = NeonGreen.copy(alpha = 0.9f)
+                                )
+                            } else if (hasRawVideo) {
+                                val videoName = currentSession.videoFilePath?.let { java.io.File(it).name } ?: "video_${currentSession.id.take(8)}.mp4"
+                                Text(
+                                    text = videoName,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextPrimary
+                                )
 
-                            Spacer(modifier = Modifier.height(4.dp))
+                                if (hasZip) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "El vídeo también se encuentra empaquetado de forma segura en Download/Telemetria/${zipFile.name}.",
+                                        fontSize = 11.sp,
+                                        color = TextSecondary
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Button(
+                                        onClick = { showManualDeleteVideoDialog = true },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(38.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = CockpitDarkSurface,
+                                            contentColor = NeonCyan
+                                        ),
+                                        shape = RoundedCornerShape(8.dp),
+                                        border = BorderStroke(1.dp, NeonCyan.copy(alpha = 0.5f))
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = null,
+                                            tint = NeonCyan,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.padding(start = 6.dp))
+                                        Text(
+                                            text = "BORRAR VÍDEO ORIGINAL (LIBERAR ${String.format(java.util.Locale.US, "%.1f MB", rawVideoSizeMb)})",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp
+                                        )
+                                    }
+                                } else {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Para liberar el espacio de este vídeo manteniendo una copia de seguridad segura, expórtalo primero en paquete ZIP.",
+                                        fontSize = 11.sp,
+                                        color = TextMuted
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(6.dp))
 
                             Text(
                                 text = "Sincronización monotónica: offset $syncOffsetMs ms respecto a muestra inicial",

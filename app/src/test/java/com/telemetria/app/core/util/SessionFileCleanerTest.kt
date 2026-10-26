@@ -66,4 +66,33 @@ class SessionFileCleanerTest {
         assertTrue(otherVideo.exists())
         assertTrue(deleted.contains(videoFile))
     }
+
+    @Test
+    fun deleteRawVideoOnly_preservesExportedZip() {
+        val moviesDir = tempFolder.newFolder("Movies", "telemetria_videos")
+        val downloadsDir = tempFolder.newFolder("Download", "Telemetria")
+
+        val targetSessionId = "fafeedb7-1111-2222-3333-444455556666"
+        val shortId = targetSessionId.take(8)
+
+        // Vídeo original en Movies/telemetria_videos
+        val rawVideo = File(moviesDir, "vid_${shortId}.mp4").apply {
+            writeText("video content data 1234567890")
+        }
+
+        // Paquete ZIP ya exportado en Download/Telemetria
+        val exportedZip = File(downloadsDir, "sesion_${shortId}_bundle.zip").apply {
+            writeText("zip bundle package containing video and telemetry")
+        }
+
+        assertTrue(rawVideo.exists())
+        assertTrue(exportedZip.exists())
+
+        // Se elimina el vídeo original de la carpeta Movies
+        SessionFileCleaner.deleteMatchingFiles(moviesDir, shortId, targetSessionId)
+
+        assertFalse("El vídeo original en Movies debe borrarse", rawVideo.exists())
+        assertTrue("El paquete ZIP en Download/Telemetria debe permanecer intacto", exportedZip.exists())
+        assertTrue(exportedZip.length() > 0)
+    }
 }

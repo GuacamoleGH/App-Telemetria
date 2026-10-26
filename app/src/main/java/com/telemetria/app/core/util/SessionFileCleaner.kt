@@ -73,6 +73,56 @@ object SessionFileCleaner {
     }
 
     /**
+     * Elimina exclusivamente el vídeo original de la sesión ubicado en la carpeta
+     * telemetria_videos (Movies) para liberar espacio de almacenamiento interno,
+     * garantizando que el archivo .zip y las exportaciones en Download/Telemetria permanecen intactos.
+     *
+     * @return Número de bytes liberados.
+     */
+    fun deleteRawVideoOnly(context: Context, session: SessionEntity?): Long {
+        if (session == null) return 0L
+        var bytesFreed = 0L
+        val shortId = session.id.take(8)
+
+        // 1. Eliminar por ruta explícita si existe
+        session.videoFilePath?.let { path ->
+            val file = File(path)
+            if (file.exists()) {
+                val len = file.length()
+                if (file.delete()) {
+                    bytesFreed += len
+                    logInfo("Vídeo original eliminado: ${file.absolutePath} ($len bytes)")
+                } else {
+                    logWarn("No se pudo eliminar el vídeo original: ${file.absolutePath}")
+                }
+            }
+        }
+
+        // 2. Eliminar posibles vídeos residuales en la carpeta telemetria_videos
+        val videoDir = try {
+            File(
+                context.getExternalFilesDir(Environment.DIRECTORY_MOVIES) ?: context.filesDir,
+                "telemetria_videos"
+            )
+        } catch (_: Throwable) {
+            null
+        }
+        if (videoDir != null && videoDir.exists() && videoDir.isDirectory) {
+            videoDir.listFiles()?.forEach { file ->
+                if (file.isFile && (file.name.contains(shortId) || file.name.contains(session.id))) {
+                    val len = file.length()
+                    if (file.delete()) {
+                        bytesFreed += len
+                        logInfo("Vídeo residual en telemetria_videos eliminado: ${file.name} ($len bytes)")
+                    }
+                }
+            }
+        }
+
+        return bytesFreed
+    }
+
+    /**
      * Elimina archivos en un directorio cuyo nombre contenga el prefijo corto (8 chars) o el ID completo de la sesión.
      */
     fun deleteMatchingFiles(
