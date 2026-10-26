@@ -255,11 +255,18 @@ class SessionManager private constructor(
             smoothedLinMag = smoothedLinMag * 0.85f + linMag * 0.15f
             smoothedGyroMag = smoothedGyroMag * 0.85f + gyroMag * 0.15f
 
+            // Comprobar si el ángulo del teléfono ha cambiado respecto a la calibración previa
+            val orientationShifted = orientationCalibrator.isOrientationChanged(
+                snapshot.rawAccelX,
+                snapshot.rawAccelY,
+                snapshot.rawAccelZ
+            )
+
             // Umbrales tolerantes a vibraciones de motor en reposo/ralentí:
             // - Aceleración lineal filtrada < 0.65 m/s² y pico instantáneo < 1.30 m/s²
             // - Velocidad angular de rotación filtrada < 0.35 rad/s y pico instantáneo < 0.60 rad/s
             // (El movimiento real humano al manipular el móvil suele superar 1.5 - 4.0 m/s² y 0.8 rad/s)
-            val isStillSample = smoothedLinMag < 0.65f && smoothedGyroMag < 0.35f && linMag < 1.30f && gyroMag < 0.60f
+            val isStillSample = !orientationShifted && smoothedLinMag < 0.65f && smoothedGyroMag < 0.35f && linMag < 1.30f && gyroMag < 0.60f
 
             if (isStillSample) {
                 motionGlitchCounter = 0
@@ -279,13 +286,23 @@ class SessionManager private constructor(
                     }
                 }
             } else {
-                // Filtro contra sacudidas o baches puntuales: requiere al menos 6 muestras consecutivas (~120ms)
-                // de movimiento sostenido o una aceleración brusca (> 1.8 m/s²) para abortar la quietud
+                // Se detectó movimiento sostenido (ej. manipular el teléfono) o cambio de inclinación del soporte
                 motionGlitchCounter++
-                if (motionGlitchCounter >= 6 || linMag > 1.8f || gyroMag > 0.8f) {
+                if (motionGlitchCounter >= 6 || linMag > 1.6f || gyroMag > 0.6f || orientationShifted) {
                     stillStartTimeMillis = 0L
                     hasAutoCalibratedForCurrentStillness = false
-                    if (_liveState.value.autoCalibrationCountdownSec != null) {
+
+                    // Si ya estaba calibrado y se mueve significativamente, descalibrar de inmediato
+                    // para volver a auto-calibrar en cuanto vuelva a estar quieto 5 segundos en la nueva posición
+                    if (_liveState.value.isSensorCalibrated) {
+                        orientationCalibrator.invalidateCalibration()
+                        _liveState.update {
+                            it.copy(
+                                isSensorCalibrated = false,
+                                autoCalibrationCountdownSec = null
+                            )
+                        }
+                    } else if (_liveState.value.autoCalibrationCountdownSec != null) {
                         _liveState.update { it.copy(autoCalibrationCountdownSec = null) }
                     }
                 }

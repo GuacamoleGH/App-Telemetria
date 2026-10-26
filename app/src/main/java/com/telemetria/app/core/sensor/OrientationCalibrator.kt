@@ -39,6 +39,29 @@ class OrientationCalibrator {
     }
 
     /**
+     * Invalida la calibración previa cuando el teléfono es manipulado o cambia de orientación.
+     */
+    fun invalidateCalibration() {
+        isCalibrated = false
+        staticGravitySamples.clear()
+    }
+
+    /**
+     * Comprueba si el vector gravedad actual se ha desviado significativamente (>15°) del vector UP calibrado.
+     */
+    fun isOrientationChanged(rawX: Float, rawY: Float, rawZ: Float): Boolean {
+        if (!isCalibrated) return false
+        val norm = sqrt(rawX * rawX + rawY * rawY + rawZ * rawZ)
+        if (norm < 7.0f || norm > 13.0f) return false
+        val currentUpX = rawX / norm
+        val currentUpY = rawY / norm
+        val currentUpZ = rawZ / norm
+        val dot = currentUpX * upVector[0] + currentUpY * upVector[1] + currentUpZ * upVector[2]
+        // cos(15°) ≈ 0.966. Si dot < 0.966, la orientación ha rotado más de 15 grados respecto a la calibrada
+        return dot < 0.966f
+    }
+
+    /**
      * Procesa una muestra de gravedad/acelerómetro durante el proceso de calibración.
      */
     fun addCalibrationSample(rawX: Float, rawY: Float, rawZ: Float): Boolean {
