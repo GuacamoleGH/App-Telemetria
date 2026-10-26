@@ -51,6 +51,9 @@ class SessionManager private constructor(
     // Variables de detección de inmovilidad para auto-calibración previa a la grabación
     private var stillStartTimeMillis: Long = 0L
     private var hasAutoCalibratedForCurrentStillness: Boolean = false
+    private var smoothedLinMag: Float = 0f
+    private var smoothedGyroMag: Float = 0f
+    private var motionGlitchCounter: Int = 0
 
     init {
         scope.launch(Dispatchers.IO) {
@@ -248,10 +251,18 @@ class SessionManager private constructor(
                 snapshot.gyroZ * snapshot.gyroZ
             )
 
-            // Umbrales de inmovilidad estricta (móvil quieto en el soporte del coche)
-            val isStill = linMag < 0.25f && gyroMag < 0.12f
+            // Filtro de paso bajo exponencial (EMA) para absorber y promediar micro-vibraciones del motor al ralentí
+            smoothedLinMag = smoothedLinMag * 0.85f + linMag * 0.15f
+            smoothedGyroMag = smoothedGyroMag * 0.85f + gyroMag * 0.15f
 
-            if (isStill) {
+            // Umbrales tolerantes a vibraciones de motor en reposo/ralentí:
+            // - Aceleración lineal filtrada < 0.65 m/s² y pico instantáneo < 1.30 m/s²
+            // - Velocidad angular de rotación filtrada < 0.35 rad/s y pico instantáneo < 0.60 rad/s
+            // (El movimiento real humano al manipular el móvil suele superar 1.5 - 4.0 m/s² y 0.8 rad/s)
+            val isStillSample = smoothedLinMag < 0.65f && smoothedGyroMag < 0.35f && linMag < 1.30f && gyroMag < 0.60f
+
+            if (isStillSample) {
+                motionGlitchCounter = 0
                 val now = snapshot.timestampMillis
                 if (stillStartTimeMillis == 0L) {
                     stillStartTimeMillis = now
@@ -268,16 +279,21 @@ class SessionManager private constructor(
                     }
                 }
             } else {
-                // Se detectó movimiento: resetear temporizador de quietud
-                stillStartTimeMillis = 0L
-                hasAutoCalibratedForCurrentStillness = false
-                if (_liveState.value.autoCalibrationCountdownSec != null) {
-                    _liveState.update { it.copy(autoCalibrationCountdownSec = null) }
+                // Filtro contra sacudidas o baches puntuales: requiere al menos 6 muestras consecutivas (~120ms)
+                // de movimiento sostenido o una aceleración brusca (> 1.8 m/s²) para abortar la quietud
+                motionGlitchCounter++
+                if (motionGlitchCounter >= 6 || linMag > 1.8f || gyroMag > 0.8f) {
+                    stillStartTimeMillis = 0L
+                    hasAutoCalibratedForCurrentStillness = false
+                    if (_liveState.value.autoCalibrationCountdownSec != null) {
+                        _liveState.update { it.copy(autoCalibrationCountdownSec = null) }
+                    }
                 }
             }
         } else {
             stillStartTimeMillis = 0L
             hasAutoCalibratedForCurrentStillness = false
+            motionGlitchCounter = 0
             if (_liveState.value.autoCalibrationCountdownSec != null) {
                 _liveState.update { it.copy(autoCalibrationCountdownSec = null) }
             }
