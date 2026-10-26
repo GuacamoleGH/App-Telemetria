@@ -12,10 +12,13 @@ import com.telemetria.app.core.obd.ObdManager
 import com.telemetria.app.core.obd.model.ObdConnectionState
 import com.telemetria.app.core.obd.scanner.DiscoveredBleDevice
 import com.telemetria.app.core.preferences.VehiclePreferences
+import com.telemetria.app.core.sensor.InertialSensorManager
 import com.telemetria.app.core.session.SessionLiveState
 import com.telemetria.app.core.session.SessionManager
 import com.telemetria.app.core.video.CameraPermissionHelper
 import com.telemetria.app.core.video.VideoRecordingManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,6 +33,20 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     val videoRecordingManager = VideoRecordingManager(application)
     val obdManager = ObdManager.getInstance(application, sessionManager)
     private val vehiclePreferences = VehiclePreferences.getInstance(application)
+    private val inertialSensorManager = InertialSensorManager(application)
+    private var uiSensorJob: Job? = null
+
+    init {
+        // Iniciar recolección inercial en primer plano para el Cockpit y auto-calibración previa a la grabación
+        uiSensorJob = viewModelScope.launch(Dispatchers.Default) {
+            inertialSensorManager.observeInertialSensors().collect { snapshot ->
+                // Solo alimentar desde el ViewModel si el Foreground Service no está activo
+                if (!TelemetryService.isRunning) {
+                    sessionManager.onInertialReceived(snapshot)
+                }
+            }
+        }
+    }
 
     val liveState: StateFlow<SessionLiveState> = sessionManager.liveState
     val vehicleConfig: StateFlow<VehicleConfig> = vehiclePreferences.vehicleConfig
@@ -159,6 +176,7 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     override fun onCleared() {
         super.onCleared()
+        uiSensorJob?.cancel()
         videoRecordingManager.release()
         obdManager.disconnect()
     }

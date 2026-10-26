@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
 import kotlin.math.abs
+import kotlin.math.sqrt
 
 class SessionManager private constructor(
     private val database: TelemetryDatabase
@@ -46,6 +47,10 @@ class SessionManager private constructor(
 
     // Ventana para reducción de tasa de persistencia inercial (ej. persistir a 10Hz en base de datos)
     private var lastInertialPersistMillis: Long = 0L
+
+    // Variables de detección de inmovilidad para auto-calibración previa a la grabación
+    private var stillStartTimeMillis: Long = 0L
+    private var hasAutoCalibratedForCurrentStillness: Boolean = false
 
     init {
         scope.launch(Dispatchers.IO) {
@@ -218,9 +223,64 @@ class SessionManager private constructor(
                 snapshot.rawAccelZ
             )
             if (finished) {
-                _liveState.update { it.copy(isCalibrating = false, isSensorCalibrated = true) }
+                _liveState.update {
+                    it.copy(
+                        isCalibrating = false,
+                        isSensorCalibrated = true,
+                        autoCalibrationCountdownSec = null
+                    )
+                }
             }
             return
+        }
+
+        // Auto-calibración: si el móvil lleva quieto más de 5 segundos antes de grabar
+        val isRecording = activeSession?.status == SessionStatus.ACTIVE
+        if (!isRecording) {
+            val linMag = sqrt(
+                snapshot.linearAccelX * snapshot.linearAccelX +
+                snapshot.linearAccelY * snapshot.linearAccelY +
+                snapshot.linearAccelZ * snapshot.linearAccelZ
+            )
+            val gyroMag = sqrt(
+                snapshot.gyroX * snapshot.gyroX +
+                snapshot.gyroY * snapshot.gyroY +
+                snapshot.gyroZ * snapshot.gyroZ
+            )
+
+            // Umbrales de inmovilidad estricta (móvil quieto en el soporte del coche)
+            val isStill = linMag < 0.25f && gyroMag < 0.12f
+
+            if (isStill) {
+                val now = snapshot.timestampMillis
+                if (stillStartTimeMillis == 0L) {
+                    stillStartTimeMillis = now
+                }
+                val elapsedStillMs = now - stillStartTimeMillis
+                if (elapsedStillMs >= 5000L && !hasAutoCalibratedForCurrentStillness) {
+                    hasAutoCalibratedForCurrentStillness = true
+                    stillStartTimeMillis = 0L
+                    startOrientationCalibration()
+                } else if (!hasAutoCalibratedForCurrentStillness && !_liveState.value.isSensorCalibrated) {
+                    val remainingSec = ((5000L - elapsedStillMs + 999L) / 1000L).toInt().coerceIn(1, 5)
+                    if (_liveState.value.autoCalibrationCountdownSec != remainingSec) {
+                        _liveState.update { it.copy(autoCalibrationCountdownSec = remainingSec) }
+                    }
+                }
+            } else {
+                // Se detectó movimiento: resetear temporizador de quietud
+                stillStartTimeMillis = 0L
+                hasAutoCalibratedForCurrentStillness = false
+                if (_liveState.value.autoCalibrationCountdownSec != null) {
+                    _liveState.update { it.copy(autoCalibrationCountdownSec = null) }
+                }
+            }
+        } else {
+            stillStartTimeMillis = 0L
+            hasAutoCalibratedForCurrentStillness = false
+            if (_liveState.value.autoCalibrationCountdownSec != null) {
+                _liveState.update { it.copy(autoCalibrationCountdownSec = null) }
+            }
         }
 
         val gForces = orientationCalibrator.transformToVehicleG(snapshot)

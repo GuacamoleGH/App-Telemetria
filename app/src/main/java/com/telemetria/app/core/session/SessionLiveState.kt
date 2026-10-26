@@ -26,6 +26,7 @@ data class SessionLiveState(
     val maxLongitudinalG: Float = 0f,
     val isSensorCalibrated: Boolean = false,
     val isCalibrating: Boolean = false,
+    val autoCalibrationCountdownSec: Int? = null,
 
     // Vídeo & Sincronización (Fase 4)
     val isVideoEnabled: Boolean = false,

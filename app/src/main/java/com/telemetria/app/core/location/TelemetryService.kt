@@ -69,6 +69,7 @@ class TelemetryService : Service() {
     }
 
     private fun startForegroundTracking() {
+        isRunning = true
         val initialNotification = buildNotification("Iniciando servicio de telemetría...", "Esperando señal GPS y sensores...")
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -135,6 +136,7 @@ class TelemetryService : Service() {
     }
 
     private fun stopForegroundTracking() {
+        isRunning = false
         locationJob?.cancel()
         sensorJob?.cancel()
         statusObserverJob?.cancel()
@@ -209,6 +211,10 @@ class TelemetryService : Service() {
     companion object {
         const val CHANNEL_ID = "telemetry_foreground_channel"
         const val NOTIFICATION_ID = 1001
+
+        @Volatile
+        var isRunning: Boolean = false
+            private set
 
         const val ACTION_START_SERVICE = "com.telemetria.app.START_SERVICE"
         const val ACTION_STOP_SERVICE = "com.telemetria.app.STOP_SERVICE"

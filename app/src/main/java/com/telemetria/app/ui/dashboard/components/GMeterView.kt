@@ -46,6 +46,8 @@ fun GMeterView(
     longitudinalG: Float,
     gpsDerivedLongG: Float?,
     isCalibrated: Boolean,
+    isCalibrating: Boolean = false,
+    autoCalibrationCountdownSec: Int? = null,
     modifier: Modifier = Modifier
 ) {
     val maxScaleG = 1.5f
@@ -75,11 +77,24 @@ fun GMeterView(
                     color = TextSecondary
                 )
 
+                val statusText = when {
+                    isCalibrating -> "CALIBRANDO..."
+                    isCalibrated -> "CALIBRADO"
+                    autoCalibrationCountdownSec != null -> "AUTO-CALIBRANDO EN ${autoCalibrationCountdownSec}s"
+                    else -> "AUTO-ESTIMADO"
+                }
+                val statusColor = when {
+                    isCalibrating -> NeonAmber
+                    isCalibrated -> NeonGreen
+                    autoCalibrationCountdownSec != null -> NeonCyan
+                    else -> NeonAmber
+                }
+
                 Text(
-                    text = if (isCalibrated) "CALIBRADO" else "AUTO-ESTIMADO",
+                    text = statusText,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isCalibrated) NeonGreen else NeonAmber
+                    color = statusColor
                 )
             }
 

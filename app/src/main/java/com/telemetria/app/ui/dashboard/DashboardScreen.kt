@@ -236,6 +236,8 @@ private fun DashboardPortraitContent(
             longitudinalG = liveState.longitudinalG,
             gpsDerivedLongG = liveState.gpsDerivedLongitudinalG,
             isCalibrated = liveState.isSensorCalibrated,
+            isCalibrating = liveState.isCalibrating,
+            autoCalibrationCountdownSec = liveState.autoCalibrationCountdownSec,
             modifier = Modifier.weight(gMeterWeight)
         )
 
@@ -475,6 +477,8 @@ private fun DashboardLandscapeContent(
                     longitudinalG = liveState.longitudinalG,
                     gpsDerivedLongG = liveState.gpsDerivedLongitudinalG,
                     isCalibrated = liveState.isSensorCalibrated,
+                    isCalibrating = liveState.isCalibrating,
+                    autoCalibrationCountdownSec = liveState.autoCalibrationCountdownSec,
                     modifier = Modifier.weight(1f)
                 )
             }
