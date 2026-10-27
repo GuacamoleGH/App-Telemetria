@@ -14,6 +14,13 @@ import java.util.zip.ZipOutputStream
 
 object ZipSessionExporter {
 
+    /**
+     * Umbral máximo seguro para incluir vídeo en el contenedor ZIP en Android.
+     * Si el archivo de vídeo supera los 2 GB (2.147.483.648 bytes), se exporta como archivo suelto
+     * junto al ZIP para evitar problemas con implementaciones de ZipOutputStream / ZIP64 en Android.
+     */
+    const val DEFAULT_MAX_ZIP_VIDEO_BYTES: Long = 2L * 1024 * 1024 * 1024
+
     private const val README_CONTENT = """========================================================================
 PAQUETE DE TELEMETRÍA Y VÍDEO SINCRONIZADO - APP TELEMETRÍA AUTOMOVILÍSTICA
 ========================================================================
@@ -24,8 +31,8 @@ con telemetría y vídeo sincronizados a nivel de reloj monotónico de nanosegun
 ------------------------------------------------------------------------
 CONTENIDO DEL PAQUETE
 ------------------------------------------------------------------------
-1. video.mp4: Vídeo original limpio grabado por CameraX (H.264 / AAC).
-2. telemetria.csv: Tabla de telemetría completa.
+1. video.mp4: Vídeo original limpio grabado por CameraX (H.264 / AAC, modo STORED sin recompresión).
+2. telemetria.csv: Tabla de telemetría completa (compresión DEFLATE).
 3. ruta.gpx: Archivo GPX 1.1 compatible con Strava, Google Earth y Garmin.
 4. session.json: Metadatos de la sesión, unidades, fuentes de datos y sincronización.
 5. LEEME_SINCRONIZACION.txt: Este documento.
@@ -58,10 +65,10 @@ INSTRUCCIONES PARA RACERENDER:
    - Coordenadas: 'latitude' y 'longitude'
 
 ------------------------------------------------------------------------
-RENDERIZADO AUTOMÁTICO CON PYTHON + FFMPEG
+RENDERIZADO AUTOMÁTICO CON TACHYON STUDIO / PYTHON
 ------------------------------------------------------------------------
-Si prefieres no usar software de terceros, puedes usar el script incluido
-en el repositorio 'pc_tools/render_telemetry_overlay.py':
+Si prefieres análisis visual en PC, puedes usar Tachyon Studio (Rust/Tauri)
+o el script incluido en 'pc_tools/render_telemetry_overlay.py':
 
 python render_telemetry_overlay.py --zip paquete_sesion.zip --out video_telemetria_final.mp4
 ========================================================================
@@ -73,12 +80,20 @@ python render_telemetry_overlay.py --zip paquete_sesion.zip --out video_telemetr
         outputZipFile: File,
         tempDir: File,
         vehicleConfig: VehicleConfig? = null,
+        maxZipVideoBytes: Long = DEFAULT_MAX_ZIP_VIDEO_BYTES,
         onProgress: ((progress: Float, statusText: String) -> Unit)? = null
     ): Boolean {
         return try {
             onProgress?.invoke(0.05f, "Generando archivos de telemetría...")
             outputZipFile.parentFile?.mkdirs()
             tempDir.mkdirs()
+
+            val videoFile = session.videoFilePath?.let { File(it) }?.takeIf { it.exists() }
+            val hasVideo = videoFile != null
+            val isVideoTooLarge = hasVideo && (videoFile!!.length() > maxZipVideoBytes)
+
+            val videoStorageMode = if (hasVideo && isVideoTooLarge) "external" else if (hasVideo) "embedded" else "none"
+            val externalVideoFilename = if (hasVideo && isVideoTooLarge) "${outputZipFile.nameWithoutExtension}_video.mp4" else null
 
             val csvFile = File(tempDir, "telemetria.csv")
             val gpxFile = File(tempDir, "ruta.gpx")
@@ -90,32 +105,51 @@ python render_telemetry_overlay.py --zip paquete_sesion.zip --out video_telemetr
             onProgress?.invoke(0.12f, "Generando mapa GPX...")
             GpxExporter.exportToGpx(session, points, gpxFile)
             onProgress?.invoke(0.18f, "Generando metadatos...")
-            jsonFile.writeText(SessionMetadataExporter.generateSessionJson(session, points.size.toLong(), vehicleConfig), StandardCharsets.UTF_8)
+            jsonFile.writeText(
+                SessionMetadataExporter.generateSessionJson(
+                    session = session,
+                    pointCount = points.size.toLong(),
+                    vehicleConfig = vehicleConfig,
+                    videoStorageMode = videoStorageMode,
+                    externalVideoFilename = externalVideoFilename
+                ),
+                StandardCharsets.UTF_8
+            )
             readmeFile.writeText(README_CONTENT, StandardCharsets.UTF_8)
 
             onProgress?.invoke(0.22f, "Iniciando compresión ZIP...")
 
-            val videoFile = session.videoFilePath?.let { File(it) }?.takeIf { it.exists() }
-            val hasVideo = videoFile != null
-
-            // Empaquetar todo en el ZIP
+            // Empaquetar entradas en el ZIP
             ZipOutputStream(BufferedOutputStream(FileOutputStream(outputZipFile))).use { zos ->
-                addFileToZip(zos, csvFile, "telemetria.csv")
-                addFileToZip(zos, gpxFile, "ruta.gpx")
-                addFileToZip(zos, jsonFile, "session.json")
-                addFileToZip(zos, readmeFile, "LEEME_SINCRONIZACION.txt")
+                // Las entradas de texto se comprimen con DEFLATE
+                addCompressedFileToZip(zos, csvFile, "telemetria.csv")
+                addCompressedFileToZip(zos, gpxFile, "ruta.gpx")
+                addCompressedFileToZip(zos, jsonFile, "session.json")
+                addCompressedFileToZip(zos, readmeFile, "LEEME_SINCRONIZACION.txt")
 
-                onProgress?.invoke(0.25f, if (hasVideo) "Empaquetando vídeo HD..." else "Finalizando paquete...")
-
-                // Si hay vídeo grabado, incluirlo en la raíz del ZIP con progreso real
-                if (videoFile != null) {
-                    addFileToZip(zos, videoFile, "video.mp4") { copiedBytes, totalBytes ->
+                // Si hay vídeo y no supera el umbral, se añade con método STORED (sin recompresión)
+                if (hasVideo && !isVideoTooLarge && videoFile != null) {
+                    onProgress?.invoke(0.25f, "Calculando CRC32 e integrando vídeo STORED...")
+                    addStoredFileToZip(zos, videoFile, "video.mp4") { copiedBytes, totalBytes ->
                         val videoFraction = (copiedBytes.toFloat() / totalBytes.coerceAtLeast(1L)).coerceIn(0f, 1f)
                         val overallProgress = 0.25f + (videoFraction * 0.70f)
                         val mbCopied = copiedBytes / (1024 * 1024)
                         val mbTotal = totalBytes / (1024 * 1024)
-                        onProgress?.invoke(overallProgress, "Empaquetando vídeo: $mbCopied / $mbTotal MB (${(videoFraction * 100).toInt()}%)")
+                        onProgress?.invoke(overallProgress, "Empaquetando vídeo (STORED): $mbCopied / $mbTotal MB (${(videoFraction * 100).toInt()}%)")
                     }
+                }
+            }
+
+            // Si el vídeo supera el umbral de 2 GB, se copia como archivo suelto junto al ZIP
+            if (hasVideo && isVideoTooLarge && videoFile != null) {
+                val externalVideoFile = File(outputZipFile.parentFile, externalVideoFilename!!)
+                onProgress?.invoke(0.30f, "Vídeo > 2 GB: Exportando vídeo suelto...")
+                copyFileWithProgress(videoFile, externalVideoFile) { copiedBytes, totalBytes ->
+                    val videoFraction = (copiedBytes.toFloat() / totalBytes.coerceAtLeast(1L)).coerceIn(0f, 1f)
+                    val overallProgress = 0.30f + (videoFraction * 0.65f)
+                    val mbCopied = copiedBytes / (1024 * 1024)
+                    val mbTotal = totalBytes / (1024 * 1024)
+                    onProgress?.invoke(overallProgress, "Exportando vídeo suelto: $mbCopied / $mbTotal MB (${(videoFraction * 100).toInt()}%)")
                 }
             }
 
@@ -134,7 +168,35 @@ python render_telemetry_overlay.py --zip paquete_sesion.zip --out video_telemetr
         }
     }
 
-    private fun addFileToZip(
+    /**
+     * Añade una entrada comprimida usando el algoritmo estándar DEFLATED.
+     */
+    private fun addCompressedFileToZip(
+        zos: ZipOutputStream,
+        file: File,
+        entryName: String
+    ) {
+        if (!file.exists()) return
+        val entry = ZipEntry(entryName).apply {
+            method = ZipEntry.DEFLATED
+        }
+        zos.putNextEntry(entry)
+        BufferedInputStream(FileInputStream(file)).use { bis ->
+            val buffer = ByteArray(64 * 1024)
+            var count: Int
+            while (bis.read(buffer).also { count = it } != -1) {
+                zos.write(buffer, 0, count)
+            }
+        }
+        zos.closeEntry()
+    }
+
+    /**
+     * Añade una entrada sin compresión (STORED).
+     * java.util.zip exige especificar size, compressedSize y crc-32 ANTES de putNextEntry().
+     * El cálculo del CRC32 se realiza por bloques (64 KB) sin cargar el archivo en RAM.
+     */
+    private fun addStoredFileToZip(
         zos: ZipOutputStream,
         file: File,
         entryName: String,
@@ -142,13 +204,21 @@ python render_telemetry_overlay.py --zip paquete_sesion.zip --out video_telemetr
     ) {
         if (!file.exists()) return
         val total = file.length()
-        var copied = 0L
-        val entry = ZipEntry(entryName)
+        val crcValue = calculateCrc32(file)
+
+        val entry = ZipEntry(entryName).apply {
+            method = ZipEntry.STORED
+            size = total
+            compressedSize = total
+            crc = crcValue
+        }
         zos.putNextEntry(entry)
+
+        var copied = 0L
+        var lastReported = 0L
         BufferedInputStream(FileInputStream(file)).use { bis ->
             val buffer = ByteArray(64 * 1024)
             var count: Int
-            var lastReported = 0L
             while (bis.read(buffer).also { count = it } != -1) {
                 zos.write(buffer, 0, count)
                 copied += count
@@ -159,6 +229,48 @@ python render_telemetry_overlay.py --zip paquete_sesion.zip --out video_telemetr
             }
         }
         zos.closeEntry()
+    }
+
+    /**
+     * Calcula el CRC32 leyendo el archivo secuencialmente en bloques de 64 KB sin consumos de RAM.
+     */
+    fun calculateCrc32(file: File): Long {
+        val crc = java.util.zip.CRC32()
+        BufferedInputStream(FileInputStream(file)).use { bis ->
+            val buffer = ByteArray(64 * 1024)
+            var count: Int
+            while (bis.read(buffer).also { count = it } != -1) {
+                crc.update(buffer, 0, count)
+            }
+        }
+        return crc.value
+    }
+
+    /**
+     * Copia un archivo de gran tamaño por streaming con progreso porcentual.
+     */
+    private fun copyFileWithProgress(
+        source: File,
+        dest: File,
+        onBytesCopied: ((copied: Long, total: Long) -> Unit)? = null
+    ) {
+        val total = source.length()
+        var copied = 0L
+        var lastReported = 0L
+        BufferedInputStream(FileInputStream(source)).use { bis ->
+            BufferedOutputStream(FileOutputStream(dest)).use { bos ->
+                val buffer = ByteArray(64 * 1024)
+                var count: Int
+                while (bis.read(buffer).also { count = it } != -1) {
+                    bos.write(buffer, 0, count)
+                    copied += count
+                    if (copied - lastReported > 256 * 1024 || copied == total) {
+                        lastReported = copied
+                        onBytesCopied?.invoke(copied, total)
+                    }
+                }
+            }
+        }
     }
 }
 

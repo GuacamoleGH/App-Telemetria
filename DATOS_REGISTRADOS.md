@@ -184,29 +184,39 @@ time_offset_video_sec,time_offset_session_sec,timestamp_utc_ms,iso_time,monotoni
 * Compatible con **Strava**, **Garmin Connect**, **Google Earth** y visores GIS.
 * Incluye etiquetas de velocidad nativas `<speed>` y extensiones de cadencia/revoluciones (`<gpxtpx:TrackPointExtension>` con `<gpxtpx:hr>` o extensiones de telemetría).
 
-### 4.2 Archivo de Metadatos JSON (`metadata.json`)
-Contiene el resumen técnico completo de la sesión:
-* `session_id`: Identificador UUID único.
-* `vehicle_config`: Configuración del vehículo utilizada (régimen máximo, corte de inyección, revoluciones de shift light y modo de aspiración).
-* `stats`: Distancia total ($m$), velocidad máxima ($km/h$), velocidad media ($km/h$), duración ($s$) y número de muestras registradas.
-* `video_sync`: Ruta del vídeo, marca de tiempo monotónica inicial del frame de vídeo y offset de sincronización en milisegundos respecto a la telemetría.
-* `hardware_environment`: Versión de Android, modelo de dispositivo y adaptador OBD utilizado.
+### 4.2 Archivo de Metadatos JSON (`session.json`)
+Contiene el esquema técnico completo de la sesión (`schema_version`: `"1.1.0"`):
+* `schema_version`: Versión del esquema (`1.1.0`).
+* `session`: Identificador UUID único, fechas y horas (ISO 8601 y Unix epoch), distancia total ($m$), velocidades ($km/h$) y conteo de muestras.
+* `vehicle_config`: Configuración de motor (régimen de corte, redline y shift light).
+* `video_synchronization`:
+  * `has_video`: Booleano indicando si existe vídeo grabado.
+  * `video_filename`: Nombre estándar del vídeo (`video.mp4`).
+  * `video_storage_mode`: `"embedded"` (guardado dentro del ZIP en modo `STORED`) o `"external"` (guardado como archivo suelto junto al ZIP si supera el umbral de 2 GB).
+  * `external_video_filename`: Nombre del archivo de vídeo externo (ej. `sesion_xxx_video.mp4`) cuando `video_storage_mode` es `"external"`.
+  * `video_start_monotonic_nanos`: Timestamp de reloj monotónico exacto del primer fotograma.
+  * `telemetry_to_video_offset_ms`: Diferencial de sincronización inicial en milisegundos.
+  * `sync_formula`: Ecuación matemática de alineación fotograma a muestra.
 
 ---
 
 ## 📦 5. Contenido del Paquete ZIP de Exportación
 
-Al pulsar el botón **Exportar Paquete ZIP** desde el detalle de la sesión en el historial, la aplicación genera un archivo comprimido autónomo en `Download/Telemetria/sesion_[id]_bundle.zip` con la siguiente estructura:
+Al pulsar el botón **Exportar Paquete ZIP** desde el detalle de la sesión en el historial, la aplicación genera un archivo comprimido autónomo en `Download/Telemetria/sesion_[id]_bundle.zip` con la siguiente estructura y especificaciones:
 
 ```
 📁 sesion_fafeedb7_bundle.zip
 │
-├── 🎥 video_fafeedb7.mp4        <- Grabación de vídeo FHD 1080p nativa de CameraX
-├── 📊 telemetria.csv            <- Telemetría completa muestreada para RaceRender / Excel
-├── 🗺️ ruta.gpx                  <- Trazado satelital georreferenciado para Strava / Google Earth
-├── ⚙️ metadata.json             <- Metadatos de sincronización de vídeo y configuración
-└── 📄 LEEME_SINCRONIZACION.txt  <- Guía paso a paso para renderizar en RaceRender en PC
+├── 🎥 video.mp4                 <- Guardado con método STORED (método 0, sin recompresión)
+├── 📊 telemetria.csv            <- Telemetría completa muestreada (método DEFLATED)
+├── 🗺️ ruta.gpx                  <- Trazado satelital GPX 1.1 (método DEFLATED)
+├── ⚙️ session.json              <- Metadatos de sincronización y configuración v1.1.0 (método DEFLATED)
+└── 📄 LEEME_SINCRONIZACION.txt  <- Guía de sincronización para PC (método DEFLATED)
 ```
+
+### Especificaciones técnicas del almacenamiento de vídeo:
+1. **Método STORED (Sin compresión):** El archivo `video.mp4` se empaqueta con método `STORED` calculando previamente su CRC-32 mediante streaming por bloques de 64 KB (sin consumo de memoria RAM). Esto permite a reproductores y a **Tachyon Studio (PC)** leer o reproducir el vídeo directamente desde el contenedor ZIP mediante `data_offset` sin necesidad de extraerlo previamente al disco temporal.
+2. **Umbral de seguridad (ZIP64 / 2 GB):** `ZipOutputStream` en ciertas versiones de Android presenta limitaciones e inconsistencias con archivos superiores a 2 o 4 GB en sistemas de 32 bits. Si el archivo de vídeo supera los **2 GB** (`2.147.483.648 bytes`), la aplicación lo exporta automáticamente como archivo suelto junto al ZIP (`sesion_[id]_bundle_video.mp4`) y lo referencia en `session.json` (`"video_storage_mode": "external"`), evitando cualquier corrupción del archivo ZIP.
 
 ---
 

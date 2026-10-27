@@ -9,7 +9,9 @@ object SessionMetadataExporter {
     fun generateSessionJson(
         session: SessionEntity,
         pointCount: Long,
-        vehicleConfig: VehicleConfig? = null
+        vehicleConfig: VehicleConfig? = null,
+        videoStorageMode: String = "embedded",
+        externalVideoFilename: String? = null
     ): String {
         val syncOffsetMs = if (session.videoStartMonotonicNanos != null && session.startMonotonicNanos > 0) {
             (session.videoStartMonotonicNanos - session.startMonotonicNanos) / 1_000_000L
@@ -22,7 +24,7 @@ object SessionMetadataExporter {
 
         return buildString {
             append("{\n")
-            append("  \"schema_version\": \"1.0.0\",\n")
+            append("  \"schema_version\": \"1.1.0\",\n")
             append("  \"generator\": \"Telemetria App Native Android\",\n")
             append("  \"session\": {\n")
             append("    \"id\": \"${session.id}\",\n")
@@ -46,6 +48,8 @@ object SessionMetadataExporter {
             append("  \"video_synchronization\": {\n")
             append("    \"has_video\": $hasVideo,\n")
             append("    \"video_filename\": ${if (hasVideo) "\"video.mp4\"" else "null"},\n")
+            append("    \"video_storage_mode\": ${if (hasVideo) "\"$videoStorageMode\"" else "null"},\n")
+            append("    \"external_video_filename\": ${if (hasVideo && externalVideoFilename != null) "\"$externalVideoFilename\"" else "null"},\n")
             append("    \"video_start_monotonic_nanos\": ${session.videoStartMonotonicNanos ?: "null"},\n")
             append("    \"video_start_epoch_ms\": ${session.videoStartEpochMillis ?: "null"},\n")
             append("    \"telemetry_to_video_offset_ms\": $syncOffsetMs,\n")
