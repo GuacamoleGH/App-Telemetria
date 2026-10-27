@@ -21,10 +21,14 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material.icons.filled.Timer
+import java.text.SimpleDateFormat
+import java.util.Date
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -94,7 +98,7 @@ fun SessionDetailScreen(
     var postZipPromptSession by remember { mutableStateOf<SessionEntity?>(null) }
     var showManualDeleteVideoDialog by remember { mutableStateOf(false) }
 
-    val detailedStats = remember(points) {
+    val detailedStats = remember(points, session) {
         if (points.isEmpty()) null
         else {
             var maxLatG = 0f
@@ -111,16 +115,25 @@ fun SessionDetailScreen(
             var maxCoolantC: Int? = null
             var avgCoolantSum = 0L
             var coolantCount = 0
+            var initialCoolantC: Int? = null
+            var finalCoolantC: Int? = null
 
-            var fullThrottleCount = 0
             var throttleCount = 0
+            var throttleMovingCount = 0
+            var throttleMovingSum = 0f
             var maxThrottle = 0f
 
             var maxBoost: Float? = null
             var maxLoad: Float? = null
+            var avgLoadSum = 0f
+            var loadCount = 0
+
+            var maxIatC: Int? = null
 
             var fuelSum = 0f
             var fuelCount = 0
+            var totalFuelLitersAcc = 0.0
+            var minCruiseFuelL100km: Float? = null
 
             var minAlt: Double? = null
             var maxAlt: Double? = null
@@ -128,9 +141,16 @@ fun SessionDetailScreen(
             var elevationLoss = 0.0
             var lastValidAlt: Double? = null
 
-            var movingTimeSec = 0L
-            var stoppedTimeSec = 0L
+            var movingTimeMillis = 0L
+            var stoppedTimeMillis = 0L
             var lastTimeMs: Long? = null
+
+            var movingDistanceMeters = 0.0
+            var lastLat: Double? = null
+            var lastLon: Double? = null
+
+            var isMovingFast = false
+            var stopCount = 0
 
             for (p in points) {
                 val lat = p.lateralG
@@ -159,16 +179,23 @@ fun SessionDetailScreen(
 
                 val coolant = p.coolantTempC
                 if (coolant != null) {
+                    if (initialCoolantC == null) initialCoolantC = coolant
+                    finalCoolantC = coolant
                     if (maxCoolantC == null || coolant > maxCoolantC) maxCoolantC = coolant
                     avgCoolantSum += coolant
                     coolantCount++
                 }
 
+                val spd = p.gpsSpeedKmh ?: p.obdSpeedKmh ?: 0f
+
                 val th = p.throttlePercent
                 if (th != null) {
                     throttleCount++
                     if (th > maxThrottle) maxThrottle = th
-                    if (th >= 85f) fullThrottleCount++
+                    if (spd >= 3.0f) {
+                        throttleMovingSum += th
+                        throttleMovingCount++
+                    }
                 }
 
                 val boost = p.boostPressureBar
@@ -179,12 +206,24 @@ fun SessionDetailScreen(
                 val load = p.engineLoadPercent
                 if (load != null) {
                     if (maxLoad == null || load > maxLoad) maxLoad = load
+                    avgLoadSum += load
+                    loadCount++
+                }
+
+                val iat = p.intakeAirTempC
+                if (iat != null) {
+                    if (maxIatC == null || iat > maxIatC) maxIatC = iat
                 }
 
                 val fuel = p.fuelConsumptionL100km
-                if (fuel != null && fuel > 0 && fuel < 100f) {
+                if (fuel != null && fuel > 0f && fuel < 100f) {
                     fuelSum += fuel
                     fuelCount++
+                    if (spd >= 50f && th != null && th in 5f..35f) {
+                        if (minCruiseFuelL100km == null || fuel < minCruiseFuelL100km) {
+                            minCruiseFuelL100km = fuel
+                        }
+                    }
                 }
 
                 val alt = p.altitudeMeters
@@ -199,21 +238,96 @@ fun SessionDetailScreen(
                     lastValidAlt = alt
                 }
 
+                // Detector de paradas de tráfico / semáforos
+                if (spd >= 10.0f) {
+                    isMovingFast = true
+                } else if (spd < 2.5f && isMovingFast) {
+                    stopCount++
+                    isMovingFast = false
+                }
+
+                // Cálculo de distancia incremental entre puntos GPS
+                var stepDistMeters = 0.0
+                if (p.latitude != null && p.longitude != null) {
+                    val curLat = p.latitude
+                    val curLon = p.longitude
+                    val pLat = lastLat
+                    val pLon = lastLon
+                    if (pLat != null && pLon != null) {
+                        val results = FloatArray(1)
+                        android.location.Location.distanceBetween(pLat, pLon, curLat, curLon, results)
+                        val d = results[0].toDouble()
+                        if (d in 0.05..300.0) {
+                            stepDistMeters = d
+                            if (spd >= 3.0f) {
+                                movingDistanceMeters += d
+                            }
+                        }
+                    }
+                    lastLat = curLat
+                    lastLon = curLon
+                }
+
                 val curTimeMs = p.timestampMillis
                 val prevTime = lastTimeMs
                 if (prevTime != null && curTimeMs > prevTime) {
-                    val dtSec: Long = (curTimeMs - prevTime) / 1000L
-                    if (dtSec in 1L..5L) {
-                        val spd = p.gpsSpeedKmh ?: p.obdSpeedKmh ?: 0f
+                    val dtMs = curTimeMs - prevTime
+                    if (dtMs in 20L..10000L) {
                         if (spd >= 3.0f) {
-                            movingTimeSec += dtSec
+                            movingTimeMillis += dtMs
                         } else {
-                            stoppedTimeSec += dtSec
+                            stoppedTimeMillis += dtMs
+                        }
+
+                        // Consumo de combustible incremental
+                        if (fuel != null && fuel > 0f) {
+                            if (spd >= 3.0f && stepDistMeters > 0.0) {
+                                totalFuelLitersAcc += (fuel / 100.0) * (stepDistMeters / 1000.0)
+                            } else if (spd < 3.0f) {
+                                // Consumo al ralentí: ~0.8 L/h
+                                totalFuelLitersAcc += (0.8 / 3600.0) * (dtMs / 1000.0)
+                            }
                         }
                     }
                 }
                 lastTimeMs = curTimeMs
             }
+
+            val movingTimeSec = movingTimeMillis / 1000L
+            val stoppedTimeSec = stoppedTimeMillis / 1000L
+            val totalTimeSec = movingTimeSec + stoppedTimeSec
+            val movingPct = if (totalTimeSec > 0) ((movingTimeSec * 100) / totalTimeSec).toInt() else 100
+
+            val effectiveDistM = if (movingDistanceMeters > 50.0) movingDistanceMeters else (session?.totalDistanceMeters ?: 0.0)
+            val avgSpeedMoving = if (movingTimeSec >= 5L && effectiveDistM > 50.0) {
+                ((effectiveDistM / 1000.0) / (movingTimeSec / 3600.0)).toFloat()
+            } else null
+
+            val distKm = effectiveDistM / 1000.0
+            val paceStr = if (distKm >= 0.1 && movingTimeSec >= 5L) {
+                val secPerKm = (movingTimeSec / distKm).toInt()
+                val m = secPerKm / 60
+                val s = secPerKm % 60
+                String.format(Locale.US, "%d'%02d\"", m, s)
+            } else null
+
+            val finalAvgFuel = if (fuelCount > 0) (fuelSum / fuelCount)
+                else if (totalFuelLitersAcc > 0.05 && distKm > 0.2) (totalFuelLitersAcc / distKm * 100.0).toFloat()
+                else null
+
+            val finalTotalFuel = if (totalFuelLitersAcc > 0.005) {
+                totalFuelLitersAcc.toFloat()
+            } else if (finalAvgFuel != null && distKm > 0.1) {
+                ((finalAvgFuel / 100.0) * distKm).toFloat()
+            } else null
+
+            val estimatedCost = finalTotalFuel?.let { it * 1.55f }
+
+            val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val firstTs = points.firstOrNull()?.timestampMillis ?: (session?.startTimeMillis ?: 0L)
+            val lastTs = points.lastOrNull()?.timestampMillis ?: (session?.endTimeMillis ?: firstTs)
+            val startTimeStr = if (firstTs > 0L) timeFormat.format(Date(firstTs)) else "--:--"
+            val endTimeStr = if (lastTs > 0L) timeFormat.format(Date(lastTs)) else "--:--"
 
             SessionDetailStats(
                 maxLatG = maxLatG,
@@ -226,18 +340,31 @@ fun SessionDetailScreen(
                 avgRpm = if (rpmCount > 0) (totalRpm / rpmCount).toInt() else null,
                 maxCoolantC = maxCoolantC,
                 avgCoolantC = if (coolantCount > 0) (avgCoolantSum / coolantCount).toInt() else null,
+                initialCoolantC = initialCoolantC,
+                finalCoolantC = finalCoolantC,
                 maxThrottlePct = if (throttleCount > 0) maxThrottle else null,
-                fullThrottlePctTime = if (throttleCount > 0) (fullThrottleCount * 100f / throttleCount) else null,
+                avgThrottleMovingPct = if (throttleMovingCount > 0) (throttleMovingSum / throttleMovingCount) else null,
                 maxBoostBar = maxBoost,
                 maxLoadPct = maxLoad,
-                avgFuelL100km = if (fuelCount > 0) (fuelSum / fuelCount) else null,
+                avgLoadPct = if (loadCount > 0) (avgLoadSum / loadCount) else null,
+                maxIntakeAirTempC = maxIatC,
+                avgFuelL100km = finalAvgFuel,
+                totalFuelLiters = finalTotalFuel,
+                estimatedFuelCostEur = estimatedCost,
+                minCruiseFuelL100km = minCruiseFuelL100km,
+                startTimeFormatted = startTimeStr,
+                endTimeFormatted = endTimeStr,
+                movingTimeSec = movingTimeSec,
+                stoppedTimeSec = stoppedTimeSec,
+                movingPctTime = movingPct,
+                avgSpeedMovingKmh = avgSpeedMoving,
+                paceMinPerKm = paceStr,
+                stopCount = stopCount,
                 minAltitudeM = minAlt,
                 maxAltitudeM = maxAlt,
                 elevationGainM = if (elevationGain > 0.0) elevationGain else null,
                 elevationLossM = if (elevationLoss > 0.0) elevationLoss else null,
-                movingTimeSec = movingTimeSec,
-                stoppedTimeSec = stoppedTimeSec,
-                hasObdData = rpmCount > 0 || coolantCount > 0,
+                hasObdData = rpmCount > 0 || coolantCount > 0 || throttleCount > 0 || fuelCount > 0,
                 totalPoints = points.size
             )
         }
@@ -568,48 +695,183 @@ fun SessionDetailScreen(
                 // Gráfica de Fuerzas G dinámicas (Fase 3: Lateral y Longitudinal)
                 GForceGraph(points = points)
 
-                // Fila de desglose de tiempo y muestras
+                // Panel: Análisis y Dinámica de Ruta
                 if (detailedStats != null) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    DetailSectionCard(
+                        title = "Análisis y Dinámica de Ruta",
+                        icon = Icons.Default.Schedule,
+                        iconColor = NeonGreen
                     ) {
-                        MetricCard(
-                            title = "En Marcha",
-                            value = FormatUtils.formatDuration(detailedStats.movingTimeSec),
-                            accentColor = NeonGreen,
-                            titleFontSize = 10.sp,
-                            valueFontSize = 18.sp,
-                            unitFontSize = 11.sp,
-                            verticalPadding = 6.dp,
-                            horizontalPadding = 4.dp,
-                            modifier = Modifier.weight(1f)
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            MetricCard(
+                                title = "Horario Trayecto",
+                                value = "${detailedStats.startTimeFormatted ?: "--"} ➔ ${detailedStats.endTimeFormatted ?: "--"}",
+                                accentColor = NeonCyan,
+                                titleFontSize = 10.sp,
+                                valueFontSize = 18.sp,
+                                verticalPadding = 6.dp,
+                                horizontalPadding = 6.dp,
+                                modifier = Modifier.weight(1.1f)
+                            )
 
-                        MetricCard(
-                            title = "Detenido",
-                            value = FormatUtils.formatDuration(detailedStats.stoppedTimeSec),
-                            accentColor = TextMuted,
-                            titleFontSize = 10.sp,
-                            valueFontSize = 18.sp,
-                            unitFontSize = 11.sp,
-                            verticalPadding = 6.dp,
-                            horizontalPadding = 4.dp,
-                            modifier = Modifier.weight(1f)
-                        )
+                            val movingSpeedVal = detailedStats.avgSpeedMovingKmh?.let { String.format(Locale.US, "%.1f", it) }
+                                ?: FormatUtils.formatSpeed(currentSession.avgSpeedKmh)
+                            MetricCard(
+                                title = "Vel. en Marcha",
+                                value = movingSpeedVal,
+                                unit = "km/h",
+                                accentColor = NeonGreen,
+                                titleFontSize = 10.sp,
+                                valueFontSize = 22.sp,
+                                unitFontSize = 11.sp,
+                                verticalPadding = 6.dp,
+                                horizontalPadding = 6.dp,
+                                modifier = Modifier.weight(0.9f)
+                            )
+                        }
 
-                        MetricCard(
-                            title = "Muestras",
-                            value = "${detailedStats.totalPoints}",
-                            unit = "pts",
-                            accentColor = NeonCyan,
-                            titleFontSize = 10.sp,
-                            valueFontSize = 18.sp,
-                            unitFontSize = 11.sp,
-                            verticalPadding = 6.dp,
-                            horizontalPadding = 4.dp,
-                            modifier = Modifier.weight(1f)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            MetricCard(
+                                title = "Tiempo Rodando",
+                                value = FormatUtils.formatDuration(detailedStats.movingTimeSec),
+                                unit = "(${detailedStats.movingPctTime}%)",
+                                accentColor = NeonGreen,
+                                titleFontSize = 10.sp,
+                                valueFontSize = 19.sp,
+                                unitFontSize = 11.sp,
+                                verticalPadding = 6.dp,
+                                horizontalPadding = 6.dp,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            MetricCard(
+                                title = "Tiempo Detenido",
+                                value = FormatUtils.formatDuration(detailedStats.stoppedTimeSec),
+                                unit = "(${100 - detailedStats.movingPctTime}%)",
+                                accentColor = if (detailedStats.stoppedTimeSec > 180) NeonAmber else TextMuted,
+                                titleFontSize = 10.sp,
+                                valueFontSize = 19.sp,
+                                unitFontSize = 11.sp,
+                                verticalPadding = 6.dp,
+                                horizontalPadding = 6.dp,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            MetricCard(
+                                title = "Paradas en Ruta",
+                                value = "${detailedStats.stopCount}",
+                                unit = "detenciones",
+                                accentColor = if (detailedStats.stopCount > 5) NeonAmber else NeonCyan,
+                                titleFontSize = 10.sp,
+                                valueFontSize = 22.sp,
+                                unitFontSize = 11.sp,
+                                verticalPadding = 6.dp,
+                                horizontalPadding = 6.dp,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            MetricCard(
+                                title = "Ritmo Medio",
+                                value = detailedStats.paceMinPerKm ?: "--",
+                                unit = "/km",
+                                accentColor = TextPrimary,
+                                titleFontSize = 10.sp,
+                                valueFontSize = 22.sp,
+                                unitFontSize = 11.sp,
+                                verticalPadding = 6.dp,
+                                horizontalPadding = 6.dp,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Text(
+                            text = "${detailedStats.totalPoints} puntos de telemetría registrados a 10 Hz",
+                            fontSize = 11.sp,
+                            color = TextMuted,
+                            fontFamily = FontFamily.Monospace
                         )
+                    }
+                }
+
+                // Panel: Consumo y Eficiencia de Combustible
+                if (detailedStats != null && (detailedStats.avgFuelL100km != null || detailedStats.totalFuelLiters != null)) {
+                    DetailSectionCard(
+                        title = "Consumo y Eficiencia de Combustible",
+                        icon = Icons.Default.LocalGasStation,
+                        iconColor = NeonCyan
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            MetricCard(
+                                title = "Consumo Medio",
+                                value = detailedStats.avgFuelL100km?.let { String.format(Locale.US, "%.1f", it) } ?: "--",
+                                unit = "L/100",
+                                accentColor = NeonCyan,
+                                titleFontSize = 10.sp,
+                                valueFontSize = 22.sp,
+                                unitFontSize = 11.sp,
+                                verticalPadding = 6.dp,
+                                horizontalPadding = 6.dp,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            MetricCard(
+                                title = "Combustible Total",
+                                value = detailedStats.totalFuelLiters?.let { String.format(Locale.US, "%.2f", it) } ?: "--",
+                                unit = "litros",
+                                accentColor = NeonAmber,
+                                titleFontSize = 10.sp,
+                                valueFontSize = 22.sp,
+                                unitFontSize = 11.sp,
+                                verticalPadding = 6.dp,
+                                horizontalPadding = 6.dp,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            MetricCard(
+                                title = "Coste Estimado",
+                                value = detailedStats.estimatedFuelCostEur?.let { String.format(Locale.US, "%.2f", it) } ?: "--",
+                                unit = "€ (1.55€/L)",
+                                accentColor = NeonGreen,
+                                titleFontSize = 10.sp,
+                                valueFontSize = 22.sp,
+                                unitFontSize = 11.sp,
+                                verticalPadding = 6.dp,
+                                horizontalPadding = 6.dp,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            MetricCard(
+                                title = "Eco Crucero",
+                                value = detailedStats.minCruiseFuelL100km?.let { String.format(Locale.US, "%.1f", it) } ?: "--",
+                                unit = "L/100",
+                                accentColor = TextSecondary,
+                                titleFontSize = 10.sp,
+                                valueFontSize = 22.sp,
+                                unitFontSize = 11.sp,
+                                verticalPadding = 6.dp,
+                                horizontalPadding = 6.dp,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                     }
                 }
 
@@ -747,22 +1009,26 @@ fun SessionDetailScreen(
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             MetricCard(
-                                title = "Temp. Máx Agua",
-                                value = detailedStats.maxCoolantC?.let { "$it°C" } ?: "--",
-                                accentColor = if ((detailedStats.maxCoolantC ?: 0) > 105) NeonRed else NeonCyan,
+                                title = "Pedal Máximo",
+                                value = detailedStats.maxThrottlePct?.let { "${it.toInt()}%" } ?: "--",
+                                unit = "pisado",
+                                accentColor = NeonGreen,
                                 titleFontSize = 10.sp,
                                 valueFontSize = 22.sp,
+                                unitFontSize = 11.sp,
                                 verticalPadding = 6.dp,
                                 horizontalPadding = 6.dp,
                                 modifier = Modifier.weight(1f)
                             )
 
                             MetricCard(
-                                title = "Temp. Media Agua",
-                                value = detailedStats.avgCoolantC?.let { "$it°C" } ?: "--",
+                                title = "Pedal Medio",
+                                value = detailedStats.avgThrottleMovingPct?.let { "${it.toInt()}%" } ?: "--",
+                                unit = "en marcha",
                                 accentColor = TextPrimary,
                                 titleFontSize = 10.sp,
                                 valueFontSize = 22.sp,
+                                unitFontSize = 11.sp,
                                 verticalPadding = 6.dp,
                                 horizontalPadding = 6.dp,
                                 modifier = Modifier.weight(1f)
@@ -773,19 +1039,6 @@ fun SessionDetailScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            MetricCard(
-                                title = "Pedal a Fondo",
-                                value = detailedStats.fullThrottlePctTime?.let { String.format(Locale.US, "%.1f", it) } ?: "--",
-                                unit = "% tiempo",
-                                accentColor = NeonGreen,
-                                titleFontSize = 10.sp,
-                                valueFontSize = 22.sp,
-                                unitFontSize = 11.sp,
-                                verticalPadding = 6.dp,
-                                horizontalPadding = 6.dp,
-                                modifier = Modifier.weight(1f)
-                            )
-
                             val aspirationTitle = if (detailedStats.maxBoostBar != null && detailedStats.maxBoostBar > 0f) "Turbo Pico" else "Carga Máx"
                             val aspirationVal = if (detailedStats.maxBoostBar != null && detailedStats.maxBoostBar > 0f) {
                                 String.format(Locale.US, "+%.2f", detailedStats.maxBoostBar)
@@ -806,35 +1059,55 @@ fun SessionDetailScreen(
                                 horizontalPadding = 6.dp,
                                 modifier = Modifier.weight(1f)
                             )
+
+                            MetricCard(
+                                title = "Carga Media",
+                                value = detailedStats.avgLoadPct?.let { "${it.toInt()}%" } ?: "--",
+                                unit = "motor",
+                                accentColor = TextSecondary,
+                                titleFontSize = 10.sp,
+                                valueFontSize = 22.sp,
+                                unitFontSize = 11.sp,
+                                verticalPadding = 6.dp,
+                                horizontalPadding = 6.dp,
+                                modifier = Modifier.weight(1f)
+                            )
                         }
 
-                        if (detailedStats.avgFuelL100km != null) {
+                        if (detailedStats.maxCoolantC != null || detailedStats.initialCoolantC != null) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                MetricCard(
-                                    title = "Consumo Medio",
-                                    value = String.format(Locale.US, "%.1f", detailedStats.avgFuelL100km),
-                                    unit = "L/100",
-                                    accentColor = NeonCyan,
-                                    titleFontSize = 10.sp,
-                                    valueFontSize = 22.sp,
-                                    unitFontSize = 11.sp,
-                                    verticalPadding = 6.dp,
-                                    horizontalPadding = 6.dp,
-                                    modifier = Modifier.weight(1f)
-                                )
+                                val tempEvolution = if (detailedStats.initialCoolantC != null && detailedStats.finalCoolantC != null) {
+                                    "${detailedStats.initialCoolantC}° ➔ ${detailedStats.finalCoolantC}°C"
+                                } else {
+                                    detailedStats.maxCoolantC?.let { "$it°C" } ?: "--"
+                                }
 
                                 MetricCard(
-                                    title = "Pedal Máximo",
-                                    value = detailedStats.maxThrottlePct?.let { "${it.toInt()}%" } ?: "--",
-                                    accentColor = TextSecondary,
+                                    title = "Temp. Motor (Ini ➔ Fin)",
+                                    value = tempEvolution,
+                                    accentColor = NeonCyan,
                                     titleFontSize = 10.sp,
-                                    valueFontSize = 22.sp,
+                                    valueFontSize = 17.sp,
                                     verticalPadding = 6.dp,
                                     horizontalPadding = 6.dp,
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier.weight(1.1f)
+                                )
+
+                                val rightTitle = if (detailedStats.maxIntakeAirTempC != null) "Temp. Admisión" else "Temp. Máx Agua"
+                                val rightVal = if (detailedStats.maxIntakeAirTempC != null) "${detailedStats.maxIntakeAirTempC}°C" else "${detailedStats.maxCoolantC ?: 0}°C"
+
+                                MetricCard(
+                                    title = rightTitle,
+                                    value = rightVal,
+                                    accentColor = if ((detailedStats.maxCoolantC ?: 0) > 105) NeonRed else NeonAmber,
+                                    titleFontSize = 10.sp,
+                                    valueFontSize = 20.sp,
+                                    verticalPadding = 6.dp,
+                                    horizontalPadding = 6.dp,
+                                    modifier = Modifier.weight(0.9f)
                                 )
                             }
                         }
@@ -1160,17 +1433,30 @@ private data class SessionDetailStats(
     val avgRpm: Int? = null,
     val maxCoolantC: Int? = null,
     val avgCoolantC: Int? = null,
+    val initialCoolantC: Int? = null,
+    val finalCoolantC: Int? = null,
     val maxThrottlePct: Float? = null,
-    val fullThrottlePctTime: Float? = null,
+    val avgThrottleMovingPct: Float? = null,
     val maxBoostBar: Float? = null,
     val maxLoadPct: Float? = null,
+    val avgLoadPct: Float? = null,
+    val maxIntakeAirTempC: Int? = null,
     val avgFuelL100km: Float? = null,
+    val totalFuelLiters: Float? = null,
+    val estimatedFuelCostEur: Float? = null,
+    val minCruiseFuelL100km: Float? = null,
+    val startTimeFormatted: String? = null,
+    val endTimeFormatted: String? = null,
+    val movingTimeSec: Long = 0L,
+    val stoppedTimeSec: Long = 0L,
+    val movingPctTime: Int = 0,
+    val avgSpeedMovingKmh: Float? = null,
+    val paceMinPerKm: String? = null,
+    val stopCount: Int = 0,
     val minAltitudeM: Double? = null,
     val maxAltitudeM: Double? = null,
     val elevationGainM: Double? = null,
     val elevationLossM: Double? = null,
-    val movingTimeSec: Long = 0L,
-    val stoppedTimeSec: Long = 0L,
     val hasObdData: Boolean = false,
     val totalPoints: Int = 0
 )

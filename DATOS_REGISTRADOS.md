@@ -64,15 +64,31 @@ Disponible sin necesidad de ningún accesorio adicional, utilizando únicamente 
 | **Offset Vídeo** | Segundos ($s$) | Segundo exacto transcurrido respecto al inicio de la pista de vídeo (`0.000 s`). |
 | **Offset Sesión** | Segundos ($s$) | Segundo exacto transcurrido respecto al inicio de la sesión de telemetría. |
 
-### 1.4 Métricas y Estadísticas Globales de Sesión
+### 1.4 Métricas y Estadísticas Globales de Sesión (Historial y Resumen de Ruta)
 | Métrica | Unidad | Descripción |
 |---|:---:|---|
-| **Distancia Total Recorrida** | Metros / Kilómetros | Sumatorio acumulativo de distancia mediante fórmula de Haversine sobre coordenadas GPS. |
-| **Tiempo Transcurrido** | Segundos / Formato `MM:SS` | Duración efectiva de la sesión. |
+| **Distancia Total Recorrida** | Kilómetros ($km$) | Sumatorio acumulativo de distancia geodésica mediante coordenadas GPS de alta frecuencia. |
+| **Tiempo de Sesión** | Formato `MM:SS` o `HH:MM:SS` | Duración total cronometrada del trayecto. |
+| **Tiempo en Movimiento** | Formato `MM:SS` (%) | Tiempo efectivo rodando a velocidad $\ge 3\text{ km/h}$ y porcentaje del tiempo total. |
+| **Tiempo Detenido** | Formato `MM:SS` (%) | Tiempo estacionado o detenido en semáforos/tráfico ($v < 3\text{ km/h}$). |
+| **Horario de Trayecto** | `HH:MM ➔ HH:MM` | Marca horaria de inicio y finalización del viaje. |
 | **Velocidad Máxima** | $km/h$ | Pico más alto de velocidad registrado durante la sesión. |
-| **Velocidad Media** | $km/h$ | Media aritmética ponderada de velocidad en movimiento. |
-| **Pico G Lateral Máximo** | $G$ | Máxima fuerza centrífuga alcanzada en curva. |
-| **Pico G Longitudinal Máximo** | $G$ | Máxima deceleración en frenada o empuje en aceleración. |
+| **Velocidad Media Global** | $km/h$ | Media aritmética ponderada de velocidad sobre el tiempo total. |
+| **Velocidad Media en Marcha** | $km/h$ | Velocidad media real en movimiento (excluyendo semáforos y paradas). |
+| **Ritmo de Marcha** | $min/km$ | Tiempo medio necesario para recorrer un kilómetro. |
+| **Paradas en Ruta** | Número de detenciones | Conteo inteligente de detenciones en semáforos o retenciones (transiciones $v \ge 10\text{ km/h} \to < 2.5\text{ km/h}$). |
+| **Consumo Medio** | $L/100\text{ km}$ | Media de consumo de combustible registrada por OBD-II o integrada en el recorrido. |
+| **Combustible Total Consumido** | Litros ($L$) | Integración numérica precisa del combustible quemado durante todo el trayecto (incluyendo ralentí). |
+| **Coste Estimado del Viaje** | Euros (€) | Estimación económica del gasto en combustible (@ 1.55 €/L). |
+| **Consumo Eco Crucero** | $L/100\text{ km}$ | Mínimo consumo sostenido a velocidad de crucero ($\ge 50\text{ km/h}$). |
+| **Pedal Acelerador Máximo** | Porcentaje ($0 - 100\%$) | Porcentaje máximo de pedal pisado alcanzado en la sesión. |
+| **Pedal Acelerador Medio** | Porcentaje ($0 - 100\%$) | Media de recorrido de acelerador durante la marcha activa. |
+| **Evolución Térmica del Motor** | Grados Celsius ($^\circ C$) | Temperatura del refrigerante al iniciar el viaje frente a la temperatura final alcanzada (`Ini ➔ Fin`) y pico máximo. |
+| **Pico G Lateral Máximo** | $G$ | Máxima fuerza centrífuga alcanzada en curva (desglosada en curva izquierda y derecha). |
+| **Pico G Longitudinal Máximo** | $G$ | Máxima deceleración en frenada ($G < 0$) o empuje en aceleración ($G > 0$). |
+| **Fuerza G Combinada Máxima** | $G$ | Vector resultante total $\sqrt{G_{lat}^2 + G_{long}^2}$. |
+| **Desnivel Acumulado (+ / -)** | Metros ($m$) | Ganancia y pérdida de altitud vertical acumuladas durante la ruta. |
+| **Altitud Máxima y Mínima** | Metros ($m$) | Cota máxima y mínima sobre el nivel del mar registradas por el barómetro/GNSS. |
 
 ---
 
