@@ -452,7 +452,7 @@ class SessionManager private constructor(
         val prevLoc = lastRecordedLocation
         if (prevLoc != null && prevLoc.speedKmh != null && gps.speedKmh != null) {
             val dtSec = (gps.timestampMillis - prevLoc.timestampMillis) / 1000.0f
-            if (dtSec in 0.2f..2.5f) {
+            if (dtSec in 0.05f..2.5f) {
                 val dvMps = ((gps.speedKmh - prevLoc.speedKmh) / 3.6f)
                 val accMps2 = dvMps / dtSec
                 gpsDerivedG = accMps2 / OrientationCalibrator.STANDARD_GRAVITY
@@ -467,7 +467,7 @@ class SessionManager private constructor(
                     lat2 = gps.latitude,
                     lon2 = gps.longitude
                 )
-                if (d > 0.5 && d < 200.0) {
+                if (d > 0.08 && d < 200.0) {
                     newDistance += d
                 }
             }

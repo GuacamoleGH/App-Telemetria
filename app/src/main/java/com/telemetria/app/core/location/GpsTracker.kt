@@ -22,14 +22,17 @@ class GpsTracker(private val context: Context) {
         LocationServices.getFusedLocationProviderClient(context)
 
     @SuppressLint("MissingPermission")
-    fun observeLocation(intervalMillis: Long = 1000L): Flow<GpsSnapshot> = callbackFlow {
+    fun observeLocation(intervalMillis: Long = 100L): Flow<GpsSnapshot> = callbackFlow {
         if (!LocationPermissionHelper.hasLocationPermissions(context)) {
             close(SecurityException("Missing location permissions"))
             return@callbackFlow
         }
 
+        // Configuración de máxima frecuencia y precisión para telemetría deportiva (hasta 10 Hz)
         val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, intervalMillis)
             .setMinUpdateIntervalMillis(intervalMillis / 2)
+            .setMinUpdateDistanceMeters(0f)
+            .setMaxUpdateDelayMillis(intervalMillis)
             .setWaitForAccurateLocation(false)
             .build()
 
@@ -75,4 +78,3 @@ class GpsTracker(private val context: Context) {
         )
     }
 }
-

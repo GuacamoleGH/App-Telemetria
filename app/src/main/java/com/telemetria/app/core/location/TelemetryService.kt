@@ -92,7 +92,7 @@ class TelemetryService : Service() {
         locationJob?.cancel()
         locationJob = serviceScope.launch {
             try {
-                gpsTracker.observeLocation(intervalMillis = 1000L).collect { snapshot ->
+                gpsTracker.observeLocation(intervalMillis = 100L).collect { snapshot ->
                     sessionManager.onGpsReceived(snapshot)
                 }
             } catch (e: Exception) {
