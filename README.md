@@ -9,13 +9,13 @@
 [![Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white)](https://developer.android.com/jetpack/compose)
 [![CameraX](https://img.shields.io/badge/CameraX-FHD%201080p-FF6F00?style=for-the-badge&logo=google&logoColor=white)](https://developer.android.com/training/camerax)
 [![OBD-II BLE](https://img.shields.io/badge/OBD--II-BLE%20High%20Speed-00E5FF?style=for-the-badge&logo=bluetooth&logoColor=black)](https://www.bluetooth.com)
-[![Download APK](https://img.shields.io/badge/Descargar-Tachyon.apk-00E676?style=for-the-badge&logo=android&logoColor=black)](apk/Tachyon.apk)
+[![Download APK](https://img.shields.io/badge/Descargar-Tachyon.apk-00E676?style=for-the-badge&logo=android&logoColor=black)](https://github.com/GuacamoleGH/Tachyon/releases/latest)
 
 <p align="center">
   <b>Una aplicación nativa moderna, offline y sin suscripciones inspirada en los tableros de competición AiM MyChron 5, MoTeC y sistemas de telemetría profesional tipo RaceRender / RaceChrono.</b>
 </p>
 
-[📥 Descargar APK Precompilado](apk/Tachyon.apk) • [🏎️ Características](#-características-principales) • [⚡ Motor OBD-II](#-motor-obd-ii-de-alta-frecuencia) • [📊 Datos Registrados](DATOS_REGISTRADOS.md) • [🎬 Renderizador PC](#-renderizado-de-vídeo-y-overlay-en-pc) • [🛠️ Instalación y Compilación](INSTALL.md)
+[📥 Descargar APK (Releases)](https://github.com/GuacamoleGH/Tachyon/releases/latest) • [🏎️ Características](#-características-principales) • [⚡ Motor OBD-II](#-motor-obd-ii-de-alta-frecuencia) • [📊 Datos Registrados](DATOS_REGISTRADOS.md) • [🎬 Renderizador PC](#-renderizado-de-vídeo-y-overlay-en-pc) • [🛠️ Instalación y Compilación](INSTALL.md)
 
 </div>
 
