@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Speed
@@ -32,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -43,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.telemetria.app.core.model.EngineAspiration
 import com.telemetria.app.core.model.VehicleConfig
 import com.telemetria.app.ui.theme.CockpitBorder
 import com.telemetria.app.ui.theme.CockpitCardBg
@@ -69,6 +72,7 @@ fun VehicleSettingsDialog(
 ) {
     var maxRpm by remember { mutableIntStateOf(currentConfig.maxRpm) }
     var redlineRpm by remember { mutableIntStateOf(currentConfig.redlineRpm) }
+    var aspiration by remember { mutableStateOf(currentConfig.aspiration) }
     // Aviso de cambio siempre fijado a 500 RPM antes de la línea roja
     val shiftLightRpm = (redlineRpm - VehicleConfig.SHIFT_LIGHT_OFFSET_RPM).coerceAtLeast(1000)
 
@@ -98,7 +102,9 @@ fun VehicleSettingsDialog(
                 .padding(vertical = 12.dp)
         ) {
             Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 14.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 // Cabecera compacta
@@ -291,13 +297,71 @@ fun VehicleSettingsDialog(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
+                // Sección: Tipo de Motor (Atmosférico vs Turbo)
+                Text(
+                    text = "TIPO DE MOTOR / ADMISIÓN",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextSecondary
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = aspiration == EngineAspiration.NATURALLY_ASPIRATED,
+                        onClick = { aspiration = EngineAspiration.NATURALLY_ASPIRATED },
+                        label = { Text("🍃 Atmosférico (NA)", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = NeonCyan.copy(alpha = 0.2f),
+                            selectedLabelColor = NeonCyan
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = aspiration == EngineAspiration.NATURALLY_ASPIRATED,
+                            borderColor = if (aspiration == EngineAspiration.NATURALLY_ASPIRATED) NeonCyan else CockpitBorder
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    FilterChip(
+                        selected = aspiration == EngineAspiration.TURBOCHARGED,
+                        onClick = { aspiration = EngineAspiration.TURBOCHARGED },
+                        label = { Text("⚡ Turbo / Soplado", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = NeonAmber.copy(alpha = 0.2f),
+                            selectedLabelColor = NeonAmber
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = aspiration == EngineAspiration.TURBOCHARGED,
+                            borderColor = if (aspiration == EngineAspiration.TURBOCHARGED) NeonAmber else CockpitBorder
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Text(
+                    text = if (aspiration == EngineAspiration.NATURALLY_ASPIRATED) {
+                        "En coches atmosféricos se oculta el manómetro de turbo (que marca valores negativos de vacío) y se muestra Carga o Consumo de motor."
+                    } else {
+                        "Muestra la presión manométrica de soplado de turbo en bar (sobrepresión sobre la atmosférica)."
+                    },
+                    fontSize = 9.sp,
+                    color = TextMuted
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
                 // Botón de Guardar
                 Button(
                     onClick = {
                         val config = VehicleConfig(
                             maxRpm = maxRpm,
                             redlineRpm = redlineRpm.coerceAtMost(maxRpm),
-                            shiftLightRpm = shiftLightRpm.coerceAtMost(maxRpm)
+                            shiftLightRpm = shiftLightRpm.coerceAtMost(maxRpm),
+                            aspiration = aspiration
                         )
                         onSaveConfig(config)
                         onDismiss()

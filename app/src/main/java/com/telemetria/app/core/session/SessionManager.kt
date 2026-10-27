@@ -360,17 +360,19 @@ class SessionManager private constructor(
                 intakeAirTempC = latestObd?.intakeAirTempC,
                 boostPressureBar = latestObd?.boostPressureBar,
                 fuelConsumptionL100km = latestObd?.fuelConsumptionL100km,
-                gear = latestObd?.calculatedGear
+                gear = resolveCurrentGear()
             )
             batchWriter?.enqueue(entity)
         }
 
+        val resolvedGear = resolveCurrentGear()
         _liveState.update {
             it.copy(
                 lateralG = currentLateralG,
                 longitudinalG = currentLongitudinalG,
                 maxLateralG = newMaxLat,
                 maxLongitudinalG = newMaxLong,
+                calculatedGear = resolvedGear ?: it.calculatedGear,
                 isSensorCalibrated = orientationCalibrator.isCalibrated
             )
         }
@@ -389,6 +391,7 @@ class SessionManager private constructor(
             obdSpd ?: _liveState.value.currentSpeedKmh
         }
 
+        val resolvedGear = resolveCurrentGear(currentSpeed, data.throttlePercent ?: latestObd?.throttlePercent)
         _liveState.update {
             it.copy(
                 currentSpeedKmh = currentSpeed,
@@ -403,9 +406,23 @@ class SessionManager private constructor(
                 boostPressureBar = data.boostPressureBar,
                 fuelRateLh = data.fuelRateLh,
                 fuelConsumptionL100km = data.fuelConsumptionL100km,
-                calculatedGear = data.calculatedGear,
+                calculatedGear = resolvedGear,
                 obdRealHz = data.realHz
             )
+        }
+    }
+
+    private fun resolveCurrentGear(
+        speedKmh: Float = _liveState.value.currentSpeedKmh,
+        throttlePercent: Float? = latestObd?.throttlePercent
+    ): String? {
+        val baseGear = latestObd?.calculatedGear
+        if (baseGear == "R") return "R"
+        val throttle = throttlePercent ?: 0f
+        return if (speedKmh > 1.5f && currentLongitudinalG < -0.10f && throttle > 5.0f) {
+            "R"
+        } else {
+            baseGear
         }
     }
 
@@ -493,7 +510,7 @@ class SessionManager private constructor(
                 intakeAirTempC = latestObd?.intakeAirTempC,
                 boostPressureBar = latestObd?.boostPressureBar,
                 fuelConsumptionL100km = latestObd?.fuelConsumptionL100km,
-                gear = latestObd?.calculatedGear
+                gear = resolveCurrentGear(currentSpeed, latestObd?.throttlePercent)
             )
             batchWriter?.enqueue(entity)
 

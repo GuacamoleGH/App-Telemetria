@@ -26,9 +26,11 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -43,10 +45,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.telemetria.app.core.database.entity.SessionEntity
 import com.telemetria.app.core.util.FormatUtils
 import com.telemetria.app.ui.dashboard.components.MetricCard
@@ -75,6 +80,7 @@ fun SessionDetailScreen(
 ) {
     val session by viewModel.selectedSession.collectAsState()
     val points by viewModel.selectedPoints.collectAsState()
+    val zipProgress by viewModel.zipExportProgress.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -94,6 +100,81 @@ fun SessionDetailScreen(
     LaunchedEffect(Unit) {
         viewModel.promptDeleteRawVideoAfterZip.collectLatest { exportedSession ->
             postZipPromptSession = exportedSession
+        }
+    }
+
+    if (zipProgress.isExporting) {
+        Dialog(
+            onDismissRequest = { /* Bloqueado hasta terminar la exportación */ },
+            properties = DialogProperties(
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false
+            )
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(1.dp, CockpitBorder, RoundedCornerShape(16.dp)),
+                color = CockpitDarkSurface
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FileDownload,
+                        contentDescription = null,
+                        tint = NeonGreen,
+                        modifier = Modifier.size(36.dp)
+                    )
+                    Text(
+                        text = "EMPAQUETANDO SESIÓN",
+                        color = TextPrimary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                    Text(
+                        text = zipProgress.sessionTitle.ifBlank { "Exportando paquete ZIP completo..." },
+                        color = TextSecondary,
+                        fontSize = 12.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                    LinearProgressIndicator(
+                        progress = { zipProgress.progress.coerceIn(0f, 1f) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp)),
+                        color = NeonGreen,
+                        trackColor = CockpitCardBg
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = zipProgress.statusText,
+                            color = TextMuted,
+                            fontSize = 11.sp
+                        )
+                        Text(
+                            text = "${(zipProgress.progress * 100).toInt()}%",
+                            color = NeonGreen,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                    }
+                    Text(
+                        text = "No cierres la aplicación durante el proceso.",
+                        color = TextMuted,
+                        fontSize = 10.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            }
         }
     }
 
@@ -463,12 +544,15 @@ fun SessionDetailScreen(
                 // Botón principal de exportación en paquete ZIP (Vídeo + CSV + GPX + JSON + Doc)
                 Button(
                     onClick = { viewModel.exportZip(currentSession) },
+                    enabled = !zipProgress.isExporting,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = NeonGreen,
-                        contentColor = CockpitBlack
+                        contentColor = CockpitBlack,
+                        disabledContainerColor = CockpitCardBg,
+                        disabledContentColor = TextMuted
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -484,12 +568,15 @@ fun SessionDetailScreen(
                 ) {
                     Button(
                         onClick = { viewModel.exportGpx(currentSession) },
+                        enabled = !zipProgress.isExporting,
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = CockpitDarkSurface,
-                            contentColor = NeonCyan
+                            contentColor = NeonCyan,
+                            disabledContainerColor = CockpitCardBg,
+                            disabledContentColor = TextMuted
                         ),
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -500,12 +587,15 @@ fun SessionDetailScreen(
 
                     Button(
                         onClick = { viewModel.exportCsv(currentSession) },
+                        enabled = !zipProgress.isExporting,
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = CockpitDarkSurface,
-                            contentColor = NeonGreen
+                            contentColor = NeonGreen,
+                            disabledContainerColor = CockpitCardBg,
+                            disabledContentColor = TextMuted
                         ),
                         shape = RoundedCornerShape(12.dp)
                     ) {

@@ -178,11 +178,43 @@ class Elm327Protocol(private val transport: ObdTransport) {
         return bytes[0].toFloat()
     }
 
+    /**
+     * Marcha real de la transmisión (Transmission Actual Gear) - PID 01A4 (SAE J1979-DA).
+     * Retorna "R", "N", o marcha "1".."8", o null si no se pudo determinar.
+     */
+    fun parseTransmissionActualGear(raw: String): String? {
+        val bytes = extractDataBytes("01A4", raw, 1) ?: return null
+        val b = bytes[0]
+        return when {
+            b == 255 || b == 0xFF || b > 250 -> "R"
+            b == 0 -> "N"
+            b in 1..8 -> b.toString()
+            else -> null
+        }
+    }
+
     companion object {
         /**
-         * Calcula la marcha actual engranada (1ª a 7ª, N o R) según la relación entre RPM y velocidad km/h.
+         * Calcula la marcha actual engranada (1ª a 7ª, N o R) según la relación entre RPM y velocidad km/h,
+         * o según la dinámica inercial/aceleración cuando el vehículo se mueve hacia atrás bajo empuje (R).
          */
-        fun calculateGear(speedKmh: Float?, rpm: Int?): String {
+        fun calculateGear(
+            speedKmh: Float?,
+            rpm: Int?,
+            longitudinalG: Float? = null,
+            throttlePercent: Float? = null
+        ): String {
+            // Detección física inercial de marcha atrás (R):
+            // Si el vehículo está en movimiento (> 1.5 km/h), el pedal del acelerador está activo (> 5%),
+            // y la aceleración longitudinal IMU es negativa (< -0.10 G, vector hacia la trasera del coche),
+            // el vehículo está acelerando hacia atrás en marcha atrás (R).
+            if (speedKmh != null && speedKmh > 1.5f &&
+                longitudinalG != null && longitudinalG < -0.10f &&
+                throttlePercent != null && throttlePercent > 5.0f
+            ) {
+                return "R"
+            }
+
             if (speedKmh == null || rpm == null || speedKmh < 4.0f || rpm < 450) {
                 return "N"
             }

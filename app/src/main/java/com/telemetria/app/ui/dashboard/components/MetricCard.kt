@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,13 +38,15 @@ fun MetricCard(
     titleFontSize: TextUnit = 12.sp,
     valueFontSize: TextUnit = 28.sp,
     unitFontSize: TextUnit = 13.sp,
+    verticalPadding: Dp = 10.dp,
+    horizontalPadding: Dp = 8.dp,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
             .background(CockpitCardBg, RoundedCornerShape(12.dp))
             .border(1.dp, CockpitBorder, RoundedCornerShape(12.dp))
-            .padding(vertical = 10.dp, horizontal = 8.dp),
+            .padding(vertical = verticalPadding, horizontal = horizontalPadding),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -76,13 +79,13 @@ fun MetricCard(
                     textAlign = TextAlign.Center
                 )
                 if (unit != null) {
-                    Spacer(modifier = Modifier.width(5.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = unit,
                         fontSize = unitFontSize,
                         fontWeight = FontWeight.SemiBold,
                         color = TextSecondary,
-                        modifier = Modifier.padding(bottom = 3.dp),
+                        modifier = Modifier.padding(bottom = 2.dp),
                         maxLines = 1
                     )
                 }

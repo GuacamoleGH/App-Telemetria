@@ -46,6 +46,7 @@ class ObdPollingScheduler(
             var latestMaf: Float? = null
             var latestFuelRate: Float? = null
             var latestBaro: Float? = 101.3f
+            var transmissionGear: String? = null
 
             while (isActive && transport.isConnected) {
                 val cycleStart = SystemClock.elapsedRealtimeNanos()
@@ -83,7 +84,7 @@ class ObdPollingScheduler(
                     }
                 }
 
-                // 4. PRIORIDAD REGULAR: Consumo de combustible en tiempo real (cada 4 ciclos)
+                // 4. PRIORIDAD REGULAR: Consumo de combustible en tiempo real y marcha de transmisión
                 if (loopCycle % 4 == 0) {
                     if (protocol.isPidSupported("015E")) {
                         try {
@@ -95,6 +96,14 @@ class ObdPollingScheduler(
                         try {
                             val rawMaf = transport.sendCommand("0110", timeoutMillis = 1000L)
                             protocol.parseMaf(rawMaf)?.let { latestMaf = it }
+                            recordQuerySuccess()
+                        } catch (_: Exception) {}
+                    }
+
+                    if (protocol.isPidSupported("01A4")) {
+                        try {
+                            val rawGear = transport.sendCommand("01A4", timeoutMillis = 1000L)
+                            protocol.parseTransmissionActualGear(rawGear)?.let { transmissionGear = it }
                             recordQuerySuccess()
                         } catch (_: Exception) {}
                     }
@@ -137,7 +146,7 @@ class ObdPollingScheduler(
                 }
 
                 // Cálculos sintéticos instantáneos (coste 0 en bus CAN):
-                val gear = Elm327Protocol.calculateGear(latestSpeed, latestRpm)
+                val gear = transmissionGear ?: Elm327Protocol.calculateGear(latestSpeed, latestRpm)
                 val boostBar = Elm327Protocol.calculateBoostBar(latestMap, latestBaro)
                 val (fuelLh, fuelL100km) = Elm327Protocol.calculateFuelConsumption(latestSpeed, latestMaf, latestFuelRate)
 

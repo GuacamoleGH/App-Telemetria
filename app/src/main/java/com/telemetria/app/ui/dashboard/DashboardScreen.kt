@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.telemetria.app.core.model.EngineAspiration
 import com.telemetria.app.core.model.SessionStatus
 import com.telemetria.app.core.model.VehicleConfig
 import com.telemetria.app.core.session.SessionLiveState
@@ -192,14 +193,14 @@ private fun DashboardPortraitContent(
         )
 
         // Pesos dinámicos: cuando la cámara está apagada, los bloques se expanden para ocupar todo el espacio inferior
-        val speedGaugeWeight = if (isVideoEnabled) 0.98f else 1.10f
-        val gMeterWeight = if (isVideoEnabled) 1.25f else 1.65f
-        val metricRowWeight = if (isVideoEnabled) 0.65f else 0.75f
+        val speedGaugeWeight = if (isVideoEnabled) 0.85f else 1.10f
+        val gMeterWeight = if (isVideoEnabled) 0.95f else 1.65f
+        val metricRowWeight = if (isVideoEnabled) 0.55f else 0.75f
 
         // Visor de Cámara CameraX: cuando está activa toma su proporción y los demás bloques se adaptan
         AnimatedVisibility(
             visible = isVideoEnabled,
-            modifier = if (isVideoEnabled) Modifier.weight(1.15f) else Modifier
+            modifier = if (isVideoEnabled) Modifier.weight(0.95f) else Modifier
         ) {
             CameraPreviewView(
                 videoRecordingManager = viewModel.videoRecordingManager,
@@ -225,9 +226,9 @@ private fun DashboardPortraitContent(
             isGpsValid = liveState.gpsFix,
             obdSpeedKmh = liveState.obdSpeedKmh,
             gear = liveState.calculatedGear,
-            speedFontSize = if (isVideoEnabled) 52.sp else 68.sp,
+            speedFontSize = if (isVideoEnabled) 50.sp else 68.sp,
             unitFontSize = if (isVideoEnabled) 14.sp else 16.sp,
-            verticalPadding = if (isVideoEnabled) 6.dp else 12.dp,
+            verticalPadding = if (isVideoEnabled) 4.dp else 12.dp,
             modifier = Modifier.weight(speedGaugeWeight)
         )
 
@@ -242,71 +243,140 @@ private fun DashboardPortraitContent(
             modifier = Modifier.weight(gMeterWeight)
         )
 
-        // Fila 1 de Métricas: Distancia y Tiempo
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(metricRowWeight),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            MetricCard(
-                title = "Distancia",
-                value = FormatUtils.formatDistanceValue(liveState.distanceMeters),
-                unit = "km",
-                accentColor = NeonCyan,
-                titleFontSize = 13.sp,
-                valueFontSize = 30.sp,
-                unitFontSize = 14.sp,
+        if (isVideoEnabled) {
+            // Cuando la cámara está activa, consolidamos las 4 métricas estándar en 1 sola fila compacta
+            // para garantizar que la fila de motor OBD NUNCA quede oculta o cortada por la barra inferior.
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-            )
+                    .fillMaxWidth()
+                    .weight(metricRowWeight),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                MetricCard(
+                    title = "Distancia",
+                    value = FormatUtils.formatDistanceValue(liveState.distanceMeters),
+                    unit = "km",
+                    accentColor = NeonCyan,
+                    titleFontSize = 10.sp,
+                    valueFontSize = 17.sp,
+                    unitFontSize = 10.sp,
+                    verticalPadding = 6.dp,
+                    horizontalPadding = 3.dp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                )
 
-            MetricCard(
-                title = "Tiempo",
-                value = FormatUtils.formatDuration(liveState.elapsedSeconds),
-                accentColor = NeonGreen,
-                titleFontSize = 13.sp,
-                valueFontSize = 28.sp,
-                unitFontSize = 14.sp,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-            )
-        }
+                MetricCard(
+                    title = "Tiempo",
+                    value = FormatUtils.formatDuration(liveState.elapsedSeconds),
+                    accentColor = NeonGreen,
+                    titleFontSize = 10.sp,
+                    valueFontSize = 17.sp,
+                    unitFontSize = 10.sp,
+                    verticalPadding = 6.dp,
+                    horizontalPadding = 3.dp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                )
 
-        // Fila 2 de Métricas: Vel. Máxima y Vel. Media
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(metricRowWeight),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            MetricCard(
-                title = "Vel. Máxima",
-                value = FormatUtils.formatSpeed(liveState.maxSpeedKmh),
-                unit = "km/h",
-                accentColor = NeonRed,
-                titleFontSize = 13.sp,
-                valueFontSize = 30.sp,
-                unitFontSize = 14.sp,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-            )
+                MetricCard(
+                    title = "Máxima",
+                    value = FormatUtils.formatSpeed(liveState.maxSpeedKmh),
+                    unit = "km/h",
+                    accentColor = NeonRed,
+                    titleFontSize = 10.sp,
+                    valueFontSize = 17.sp,
+                    unitFontSize = 10.sp,
+                    verticalPadding = 6.dp,
+                    horizontalPadding = 3.dp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                )
 
-            MetricCard(
-                title = "Vel. Media",
-                value = FormatUtils.formatSpeed(liveState.avgSpeedKmh),
-                unit = "km/h",
-                accentColor = NeonAmber,
-                titleFontSize = 13.sp,
-                valueFontSize = 30.sp,
-                unitFontSize = 14.sp,
+                MetricCard(
+                    title = "Media",
+                    value = FormatUtils.formatSpeed(liveState.avgSpeedKmh),
+                    unit = "km/h",
+                    accentColor = NeonAmber,
+                    titleFontSize = 10.sp,
+                    valueFontSize = 17.sp,
+                    unitFontSize = 10.sp,
+                    verticalPadding = 6.dp,
+                    horizontalPadding = 3.dp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                )
+            }
+        } else {
+            // Modo vertical con cámara apagada: 2 filas grandes de 2 métricas cada una
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-            )
+                    .fillMaxWidth()
+                    .weight(metricRowWeight),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                MetricCard(
+                    title = "Distancia",
+                    value = FormatUtils.formatDistanceValue(liveState.distanceMeters),
+                    unit = "km",
+                    accentColor = NeonCyan,
+                    titleFontSize = 13.sp,
+                    valueFontSize = 30.sp,
+                    unitFontSize = 14.sp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                )
+
+                MetricCard(
+                    title = "Tiempo",
+                    value = FormatUtils.formatDuration(liveState.elapsedSeconds),
+                    accentColor = NeonGreen,
+                    titleFontSize = 13.sp,
+                    valueFontSize = 28.sp,
+                    unitFontSize = 14.sp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                )
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(metricRowWeight),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                MetricCard(
+                    title = "Vel. Máxima",
+                    value = FormatUtils.formatSpeed(liveState.maxSpeedKmh),
+                    unit = "km/h",
+                    accentColor = NeonRed,
+                    titleFontSize = 13.sp,
+                    valueFontSize = 30.sp,
+                    unitFontSize = 14.sp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                )
+
+                MetricCard(
+                    title = "Vel. Media",
+                    value = FormatUtils.formatSpeed(liveState.avgSpeedKmh),
+                    unit = "km/h",
+                    accentColor = NeonAmber,
+                    titleFontSize = 13.sp,
+                    valueFontSize = 30.sp,
+                    unitFontSize = 14.sp,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                )
+            }
         }
 
         // Grid de Métricas de Motor OBD
@@ -321,6 +391,9 @@ private fun DashboardPortraitContent(
                     title = "Refrigerante",
                     value = liveState.coolantTempC?.let { "$it°C" } ?: "--",
                     accentColor = if ((liveState.coolantTempC ?: 0) > 105) NeonRed else NeonCyan,
+                    titleFontSize = if (isVideoEnabled) 11.sp else 12.sp,
+                    valueFontSize = if (isVideoEnabled) 20.sp else 28.sp,
+                    verticalPadding = if (isVideoEnabled) 6.dp else 10.dp,
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
@@ -330,24 +403,45 @@ private fun DashboardPortraitContent(
                     title = "Pedal Acel.",
                     value = liveState.throttlePercent?.let { "${it.toInt()}%" } ?: "--",
                     accentColor = NeonGreen,
+                    titleFontSize = if (isVideoEnabled) 11.sp else 12.sp,
+                    valueFontSize = if (isVideoEnabled) 20.sp else 28.sp,
+                    verticalPadding = if (isVideoEnabled) 6.dp else 10.dp,
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
                 )
 
-                val extraTitle = if (liveState.boostPressureBar != null) "Turbo" else if (liveState.fuelConsumptionL100km != null) "Consumo" else null
-                val extraValue = if (liveState.boostPressureBar != null) {
+                val extraTitle: String?
+                val extraValue: String?
+                val extraUnit: String?
+                if (vehicleConfig.aspiration == EngineAspiration.TURBOCHARGED && liveState.boostPressureBar != null) {
+                    extraTitle = "Turbo"
                     val b = liveState.boostPressureBar
-                    if (b >= 0f) String.format(java.util.Locale.US, "+%.2f bar", b) else String.format(java.util.Locale.US, "%.2f bar", b)
+                    extraValue = if (b >= 0f) String.format(java.util.Locale.US, "+%.2f", b) else String.format(java.util.Locale.US, "%.2f", b)
+                    extraUnit = "bar"
+                } else if (liveState.engineLoadPercent != null) {
+                    extraTitle = "Carga"
+                    extraValue = "${liveState.engineLoadPercent.toInt()}%"
+                    extraUnit = null
                 } else if (liveState.fuelConsumptionL100km != null) {
-                    String.format(java.util.Locale.US, "%.1f L/100", liveState.fuelConsumptionL100km)
-                } else null
+                    extraTitle = "Consumo"
+                    extraValue = String.format(java.util.Locale.US, "%.1f", liveState.fuelConsumptionL100km)
+                    extraUnit = "L/100"
+                } else {
+                    extraTitle = null
+                    extraValue = null
+                    extraUnit = null
+                }
 
                 if (extraTitle != null && extraValue != null) {
                     MetricCard(
                         title = extraTitle,
                         value = extraValue,
+                        unit = extraUnit,
                         accentColor = NeonAmber,
+                        titleFontSize = if (isVideoEnabled) 11.sp else 12.sp,
+                        valueFontSize = if (isVideoEnabled) 20.sp else 28.sp,
+                        verticalPadding = if (isVideoEnabled) 6.dp else 10.dp,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
@@ -420,35 +514,65 @@ private fun DashboardLandscapeContent(
                 if (liveState.isObdConnected) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         MetricCard(
-                            title = "Refrigerante",
+                            title = "Agua",
                             value = liveState.coolantTempC?.let { "$it°C" } ?: "--",
                             accentColor = if ((liveState.coolantTempC ?: 0) > 105) NeonRed else NeonCyan,
+                            titleFontSize = 9.sp,
+                            valueFontSize = 16.sp,
+                            unitFontSize = 10.sp,
+                            verticalPadding = 4.dp,
+                            horizontalPadding = 4.dp,
                             modifier = Modifier.weight(1f)
                         )
 
                         MetricCard(
-                            title = "Pedal Acel.",
+                            title = "Pedal",
                             value = liveState.throttlePercent?.let { "${it.toInt()}%" } ?: "--",
                             accentColor = NeonGreen,
+                            titleFontSize = 9.sp,
+                            valueFontSize = 16.sp,
+                            unitFontSize = 10.sp,
+                            verticalPadding = 4.dp,
+                            horizontalPadding = 4.dp,
                             modifier = Modifier.weight(1f)
                         )
 
-                        if (liveState.boostPressureBar != null) {
+                        val extraLandscapeTitle: String?
+                        val extraLandscapeValue: String?
+                        val extraLandscapeUnit: String?
+                        if (vehicleConfig.aspiration == EngineAspiration.TURBOCHARGED && liveState.boostPressureBar != null) {
+                            extraLandscapeTitle = "Turbo"
                             val b = liveState.boostPressureBar
-                            MetricCard(
-                                title = "Turbo",
-                                value = if (b >= 0f) String.format(java.util.Locale.US, "+%.2f bar", b) else String.format(java.util.Locale.US, "%.2f bar", b),
-                                accentColor = NeonAmber,
-                                modifier = Modifier.weight(1f)
-                            )
+                            extraLandscapeValue = if (b >= 0f) String.format(java.util.Locale.US, "+%.2f", b) else String.format(java.util.Locale.US, "%.2f", b)
+                            extraLandscapeUnit = "bar"
+                        } else if (liveState.engineLoadPercent != null) {
+                            extraLandscapeTitle = "Carga"
+                            extraLandscapeValue = "${liveState.engineLoadPercent.toInt()}%"
+                            extraLandscapeUnit = null
                         } else if (liveState.fuelConsumptionL100km != null) {
+                            extraLandscapeTitle = "Consumo"
+                            extraLandscapeValue = String.format(java.util.Locale.US, "%.1f", liveState.fuelConsumptionL100km)
+                            extraLandscapeUnit = "L/100"
+                        } else {
+                            extraLandscapeTitle = null
+                            extraLandscapeValue = null
+                            extraLandscapeUnit = null
+                        }
+
+                        if (extraLandscapeTitle != null && extraLandscapeValue != null) {
                             MetricCard(
-                                title = "Consumo",
-                                value = String.format(java.util.Locale.US, "%.1f L/100", liveState.fuelConsumptionL100km),
+                                title = extraLandscapeTitle,
+                                value = extraLandscapeValue,
+                                unit = extraLandscapeUnit,
                                 accentColor = NeonAmber,
+                                titleFontSize = 9.sp,
+                                valueFontSize = 16.sp,
+                                unitFontSize = 10.sp,
+                                verticalPadding = 4.dp,
+                                horizontalPadding = 4.dp,
                                 modifier = Modifier.weight(1f)
                             )
                         }

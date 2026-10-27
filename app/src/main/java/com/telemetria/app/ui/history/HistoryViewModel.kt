@@ -23,6 +23,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 
+data class ZipExportProgress(
+    val isExporting: Boolean = false,
+    val progress: Float = 0f,
+    val statusText: String = "",
+    val sessionTitle: String = ""
+)
+
 class HistoryViewModel(application: Application) : AndroidViewModel(application) {
 
     private val db = TelemetryDatabase.getInstance(application)
@@ -41,6 +48,9 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
 
     private val _promptDeleteRawVideoAfterZip = MutableSharedFlow<SessionEntity>()
     val promptDeleteRawVideoAfterZip: SharedFlow<SessionEntity> = _promptDeleteRawVideoAfterZip.asSharedFlow()
+
+    private val _zipExportProgress = MutableStateFlow(ZipExportProgress())
+    val zipExportProgress: StateFlow<ZipExportProgress> = _zipExportProgress.asStateFlow()
 
     fun loadSessionDetails(sessionId: String) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -88,6 +98,12 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun exportZip(session: SessionEntity) {
+        _zipExportProgress.value = ZipExportProgress(
+            isExporting = true,
+            progress = 0.05f,
+            statusText = "Iniciando empaquetado...",
+            sessionTitle = session.title
+        )
         viewModelScope.launch(Dispatchers.IO) {
             val points = _selectedPoints.value.ifEmpty {
                 db.telemetryPointDao().getPointsForSession(session.id)
@@ -102,9 +118,18 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
                 points = points,
                 outputZipFile = zipFile,
                 tempDir = tempDir,
-                vehicleConfig = vehicleConfig
+                vehicleConfig = vehicleConfig,
+                onProgress = { progress, statusText ->
+                    _zipExportProgress.value = ZipExportProgress(
+                        isExporting = true,
+                        progress = progress,
+                        statusText = statusText,
+                        sessionTitle = session.title
+                    )
+                }
             )
             withContext(Dispatchers.Main) {
+                _zipExportProgress.value = ZipExportProgress(isExporting = false)
                 if (success) {
                     _exportMessage.emit("Paquete ZIP exportado en: ${zipFile.absolutePath}")
                     if (doesRawVideoExist(session)) {

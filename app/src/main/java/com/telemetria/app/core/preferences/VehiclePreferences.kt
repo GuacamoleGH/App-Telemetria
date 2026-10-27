@@ -2,6 +2,7 @@ package com.telemetria.app.core.preferences
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.telemetria.app.core.model.EngineAspiration
 import com.telemetria.app.core.model.VehicleConfig
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,12 +23,19 @@ class VehiclePreferences private constructor(context: Context) {
         val redlineRpm = prefs.getInt(KEY_REDLINE_RPM, VehicleConfig.DEFAULT.redlineRpm)
         // Aviso de cambio siempre a 500 RPM antes de la línea roja
         val shiftLightRpm = (redlineRpm - VehicleConfig.SHIFT_LIGHT_OFFSET_RPM).coerceAtLeast(1000)
+        val aspirationStr = prefs.getString(KEY_ENGINE_ASPIRATION, EngineAspiration.NATURALLY_ASPIRATED.name)
+        val aspiration = try {
+            EngineAspiration.valueOf(aspirationStr ?: EngineAspiration.NATURALLY_ASPIRATED.name)
+        } catch (_: Exception) {
+            EngineAspiration.NATURALLY_ASPIRATED
+        }
 
         return try {
             VehicleConfig(
                 maxRpm = maxRpm,
                 redlineRpm = redlineRpm.coerceAtMost(maxRpm),
-                shiftLightRpm = shiftLightRpm.coerceAtMost(maxRpm)
+                shiftLightRpm = shiftLightRpm.coerceAtMost(maxRpm),
+                aspiration = aspiration
             )
         } catch (_: Exception) {
             VehicleConfig.DEFAULT
@@ -39,6 +47,7 @@ class VehiclePreferences private constructor(context: Context) {
             .putInt(KEY_MAX_RPM, config.maxRpm)
             .putInt(KEY_REDLINE_RPM, config.redlineRpm)
             .putInt(KEY_SHIFT_LIGHT_RPM, config.shiftLightRpm)
+            .putString(KEY_ENGINE_ASPIRATION, config.aspiration.name)
             .apply()
 
         _vehicleConfig.value = config
@@ -49,6 +58,7 @@ class VehiclePreferences private constructor(context: Context) {
         private const val KEY_MAX_RPM = "vehicle_max_rpm"
         private const val KEY_REDLINE_RPM = "vehicle_redline_rpm"
         private const val KEY_SHIFT_LIGHT_RPM = "vehicle_shift_light_rpm"
+        private const val KEY_ENGINE_ASPIRATION = "vehicle_engine_aspiration"
 
         @Volatile
         private var INSTANCE: VehiclePreferences? = null
