@@ -4,6 +4,33 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+import java.io.FileInputStream
+import java.util.Properties
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
+}
+
+fun getKeystoreProperty(key: String, envKey: String): String? {
+    return localProperties.getProperty(key) ?: System.getenv(envKey)
+}
+
+val releaseKeystoreFile = getKeystoreProperty("release.keystore.file", "RELEASE_KEYSTORE_FILE")
+val releaseKeystorePassword = getKeystoreProperty("release.keystore.password", "RELEASE_KEYSTORE_PASSWORD")
+val releaseKeyAlias = getKeystoreProperty("release.key.alias", "RELEASE_KEY_ALIAS")
+val releaseKeyPassword = getKeystoreProperty("release.key.password", "RELEASE_KEY_PASSWORD")
+
+// Política de VersionCode y VersionName parametrizable
+val appVersionCode: Int = (project.findProperty("versionCode") as? String)?.toIntOrNull()
+    ?: localProperties.getProperty("app.versionCode")?.toIntOrNull()
+    ?: 2
+
+val appVersionName: String = (project.findProperty("versionName") as? String)
+    ?: localProperties.getProperty("app.versionName")
+    ?: "1.1.0"
+
 android {
     namespace = "com.telemetria.app"
     compileSdk = 34
@@ -12,8 +39,8 @@ android {
         applicationId = "com.telemetria.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -25,6 +52,25 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            if (!releaseKeystoreFile.isNullOrEmpty() &&
+                !releaseKeystorePassword.isNullOrEmpty() &&
+                !releaseKeyAlias.isNullOrEmpty() &&
+                !releaseKeyPassword.isNullOrEmpty()
+            ) {
+                val file = File(releaseKeystoreFile)
+                val resolved = if (file.isAbsolute) file else rootProject.file(releaseKeystoreFile)
+                if (resolved.exists()) {
+                    storeFile = resolved
+                    storePassword = releaseKeystorePassword
+                    keyAlias = releaseKeyAlias
+                    keyPassword = releaseKeyPassword
+                }
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -32,6 +78,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            val releaseSigning = signingConfigs.getByName("release")
+            if (releaseSigning.storeFile != null) {
+                signingConfig = releaseSigning
+            }
         }
     }
 
@@ -60,6 +110,10 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+
+    lint {
+        disable += "InvalidFragmentVersionForActivityResult"
     }
 }
 

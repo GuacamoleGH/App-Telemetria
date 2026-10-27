@@ -124,9 +124,10 @@ Para consultar los requisitos completos de compilación, comandos de Gradle, con
 👉 [**📖 Ver Guía de Instalación y Compilación (INSTALL.md)**](INSTALL.md)
 
 ### Resumen Rápido:
-* **📥 Descarga Directa del APK:** [**`apk/Tachyon.apk`**](apk/Tachyon.apk)
-* **⚡ Instalación rápida vía ADB:** `adb install -r apk/Tachyon.apk`
+* **📥 Descarga del APK Oficial:** [**GitHub Releases (Última Versión)**](https://github.com/GuacamoleGH/Tachyon/releases/latest)
+* **⚡ Instalación rápida vía ADB:** `adb install -r Tachyon.apk` (tras descargarlo de Releases)
 * **🛠️ Compilación del proyecto:** `./gradlew assembleDebug` (requiere JDK 17 y Android SDK 34)
+* **🔐 Firma de Release:** [Ver Guía de Firma y Keystore (RELEASE_SIGNING.md)](RELEASE_SIGNING.md)
 * **🎬 Herramientas de PC:** `python pc_tools/render_telemetry_overlay.py --zip sesion.zip --out video.mp4`
 
 ---
