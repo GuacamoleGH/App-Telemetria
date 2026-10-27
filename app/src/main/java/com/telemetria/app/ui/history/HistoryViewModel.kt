@@ -97,7 +97,7 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    fun exportZip(session: SessionEntity) {
+    fun exportZip(session: SessionEntity, trimDistanceMeters: Double = 0.0) {
         _zipExportProgress.value = ZipExportProgress(
             isExporting = true,
             progress = 0.05f,
@@ -105,8 +105,13 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
             sessionTitle = session.title
         )
         viewModelScope.launch(Dispatchers.IO) {
-            val points = _selectedPoints.value.ifEmpty {
+            val rawPoints = _selectedPoints.value.ifEmpty {
                 db.telemetryPointDao().getPointsForSession(session.id)
+            }
+            val points = if (trimDistanceMeters > 0.0) {
+                com.telemetria.app.core.util.PrivacyTrimmer.trimPointsByDistance(rawPoints, trimDistanceMeters)
+            } else {
+                rawPoints
             }
             val exportDir = getExportDirectory()
             val zipFile = File(exportDir, "sesion_${session.id.take(8)}_bundle.zip")

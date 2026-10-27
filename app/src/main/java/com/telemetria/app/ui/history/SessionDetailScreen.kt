@@ -40,6 +40,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -95,6 +96,9 @@ fun SessionDetailScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showExportDialog by remember { mutableStateOf(false) }
+    var trimPrivacyEnabled by remember { mutableStateOf(false) }
+    var trimDistanceMeters by remember { mutableStateOf(200.0) }
     var postZipPromptSession by remember { mutableStateOf<SessionEntity?>(null) }
     var showManualDeleteVideoDialog by remember { mutableStateOf(false) }
 
@@ -459,6 +463,124 @@ fun SessionDetailScreen(
                 }
             }
         }
+    }
+
+    if (showExportDialog && session != null) {
+        val current = session!!
+        AlertDialog(
+            onDismissRequest = { showExportDialog = false },
+            title = {
+                Text(
+                    text = "Exportar Paquete ZIP",
+                    color = TextPrimary,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Se empaquetará el vídeo original sincronizado junto con la telemetría CSV, ruta GPX y metadatos JSON.",
+                        color = TextSecondary,
+                        fontSize = 13.sp
+                    )
+
+                    // Control de Privacidad de Ruta
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(CockpitCardBg)
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Ocultar salida y llegada",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = TextPrimary
+                            )
+                            Text(
+                                text = "Recorta los primeros y últimos ${trimDistanceMeters.toInt()} m de datos",
+                                fontSize = 11.sp,
+                                color = TextMuted
+                            )
+                        }
+                        Switch(
+                            checked = trimPrivacyEnabled,
+                            onCheckedChange = { trimPrivacyEnabled = it }
+                        )
+                    }
+
+                    if (trimPrivacyEnabled) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            listOf(100.0, 200.0, 500.0, 1000.0).forEach { dist ->
+                                val selected = trimDistanceMeters == dist
+                                Button(
+                                    onClick = { trimDistanceMeters = dist },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(34.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (selected) NeonCyan else CockpitCardBg,
+                                        contentColor = if (selected) CockpitBlack else TextSecondary
+                                    ),
+                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
+                                ) {
+                                    Text("${dist.toInt()}m", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+
+                        // Aviso de privacidad
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(NeonAmber.copy(alpha = 0.12f))
+                                .border(1.dp, NeonAmber.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                                .padding(10.dp)
+                        ) {
+                            Text(
+                                text = "⚠️ AVISO DE PRIVACIDAD:\nEl recorte oculta las coordenadas y datos de salida y llegada en los archivos de datos (CSV, GPX y JSON), pero NO recorta el archivo de vídeo MP4, el cual aún podría mostrar tu entorno físico de inicio o fin.",
+                                color = NeonAmber,
+                                fontSize = 11.sp,
+                                lineHeight = 15.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showExportDialog = false
+                        viewModel.exportZip(
+                            session = current,
+                            trimDistanceMeters = if (trimPrivacyEnabled) trimDistanceMeters else 0.0
+                        )
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = NeonGreen,
+                        contentColor = CockpitBlack
+                    )
+                ) {
+                    Text("EXPORTAR ZIP", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExportDialog = false }) {
+                    Text("CANCELAR", color = TextSecondary)
+                }
+            },
+            containerColor = CockpitDarkSurface,
+            shape = RoundedCornerShape(14.dp)
+        )
     }
 
     if (postZipPromptSession != null) {
@@ -1316,7 +1438,7 @@ fun SessionDetailScreen(
 
                 // Botón principal de exportación en paquete ZIP (Vídeo + CSV + GPX + JSON + Doc)
                 Button(
-                    onClick = { viewModel.exportZip(currentSession) },
+                    onClick = { showExportDialog = true },
                     enabled = !zipProgress.isExporting,
                     modifier = Modifier
                         .fillMaxWidth()
