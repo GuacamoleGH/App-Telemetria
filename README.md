@@ -86,8 +86,10 @@ flowchart LR
 
 ## 🎬 Renderizado de Vídeo y Overlay en PC
 
-Tachyon exporta cada sesión en un único paquete `.zip` preparado para análisis en **RaceRender**, **DashWare** o mediante el **script autónomo de renderizado en Python**:
+Tachyon exporta cada sesión en un único paquete `.zip` con el vídeo MP4 original (método STORED para lectura instantánea), la telemetría completa en formato CSV estándar y la ruta en GPX 1.1 georreferenciada. Este paquete está optimizado para su visualización y renderizado mediante las herramientas del proyecto:
 
+1. **Tachyon Studio (PC - Rust/Tauri):** Aplicación de escritorio nativa multiplataforma con minimapa sincronizado, gráficas de telemetría y reproductor con búsqueda precisa por frame.
+2. **Script autónomo de renderizado en Python (`pc_tools`):**
 ```bash
 # 1. Entrar en la carpeta de herramientas de PC
 cd pc_tools
@@ -100,6 +102,18 @@ python render_telemetry_overlay.py --zip ruta/a/tu/sesion_bundle.zip --out video
 ```
 
 > **Consejo:** Si grabaste con el móvil invertido en el salpicadero, puedes añadir `--rotate 180` para girar el metraje automáticamente durante el renderizado.
+
+---
+
+## 🔬 Matriz de Verificación y Estado de Pruebas
+
+Para mantener la máxima transparencia técnica, el proyecto diferencia explícitamente entre lo verificado en tests unitarios, lo probado en dispositivo físico real y lo pendiente de prueba en vehículo:
+
+| Nivel de Verificación | Componentes y Funcionalidades | Estado |
+|---|---|:---:|
+| **✅ Tests Unitarios Automatizados (JUnit)** | • Parser y decodificador del protocolo ELM327 (RPM, velocidad, marchas, temperaturas).<br>• Calibrador de orientación inercial y cálculo dinámico de fuerzas G.<br>• Exportación y validación de sintaxis de CSV y GPX 1.1.<br>• Empaquetado ZIP con método STORED para vídeo y fallback para archivos > 2 GB.<br>• Algoritmo de recorte de privacidad de ruta (`PrivacyTrimmer`). | **100% Superado** |
+| **✅ Probado en Dispositivo Físico Real**<br>*(Nothing CMF Phone 2 Pro, Android 14)* | • Grabación de vídeo FHD 1080p con CameraX y Foreground Service en segundo plano.<br>• Sensores inerciales IMU a 50 Hz en tiempo real con calibración en reposo.<br>• Receptor GNSS/GPS muestreando a alta frecuencia (10 Hz / 100 ms).<br>• Interfaz gráfica a 120 Hz en vertical y horizontal.<br>• Generación de paquetes ZIP en almacenamiento local (`Download/Telemetria`). | **Verificado y Operativo** |
+| **⏳ Pendiente de Prueba en Vehículo Real**<br>*(Adaptador Veepeak OBDCheck BLE)* | • Negociación Bluetooth Low Energy (GATT) con el adaptador físico en puerto OBD-II.<br>• Frecuencia efectiva de consulta CAN en centralita ECU real en carretera.<br>• Tolerancia ante desconexión por ciclos Stop & Start del motor.<br>👉 **[Ver Checklist de Pruebas en Vehículo (PRUEBAS_PENDIENTES.md)](PRUEBAS_PENDIENTES.md)** | **Checklist Preparado** |
 
 ---
 
