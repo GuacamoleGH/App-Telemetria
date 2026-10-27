@@ -15,7 +15,7 @@
   <b>Una aplicación nativa moderna, offline y sin suscripciones inspirada en los tableros de competición AiM MyChron 5, MoTeC y sistemas de telemetría profesional tipo RaceRender / RaceChrono.</b>
 </p>
 
-[📥 Descargar APK Precompilado](apk/Tachyon.apk) • [🏎️ Características](#-características-principales) • [⚡ Motor OBD-II](#-motor-obd-ii-de-alta-frecuencia) • [🎬 Renderizador PC](#-renderizado-de-vídeo-y-overlay-en-pc) • [🛠️ Instalación y Compilación](INSTALL.md)
+[📥 Descargar APK Precompilado](apk/Tachyon.apk) • [🏎️ Características](#-características-principales) • [⚡ Motor OBD-II](#-motor-obd-ii-de-alta-frecuencia) • [📊 Datos Registrados](DATOS_REGISTRADOS.md) • [🎬 Renderizador PC](#-renderizado-de-vídeo-y-overlay-en-pc) • [🛠️ Instalación y Compilación](INSTALL.md)
 
 </div>
 
