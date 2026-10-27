@@ -119,7 +119,10 @@ Para consultar los requisitos completos de compilación, comandos de Gradle, con
 
 ## 🛡️ Privacidad y Seguridad
 
-* **100% Local & Offline:** Tus salidas, rutas, vídeos y datos de telemetría pertenecen exclusivamente a tu dispositivo. No requiere registro de usuario ni realiza conexiones con servidores externos.
+* **Telemetría y Base de Datos 100% Local:** Tus salidas, rutas, vídeos y datos de telemetría se almacenan y procesan de forma estrictamente local en el dispositivo (sin cuentas, sin analíticas y sin envío de datos personales ni telemetría al exterior).
+* **Uso de Red Exclusivo para OpenStreetMap:** La aplicación no realiza conexiones a ningún servidor propio o de analítica. El permiso `INTERNET` se utiliza única y exclusivamente en la pantalla de detalle de sesión para descargar las teselas visuales del mapa desde los servidores públicos de OpenStreetMap. La vista de mapa incluye un conmutador de "Solo Caché (Offline)" para desactivar cualquier petición de red si el usuario lo prefiere.
+* **Copia de seguridad del sistema deshabilitada:** Se fija `android:allowBackup="false"` para impedir la extracción no autorizada de la base de datos de Room con coordenadas GPS a través de `adb backup` o copias automáticas desatendidas en la nube.
+* **Recorte de Privacidad Opcional:** Al exportar un paquete ZIP, el usuario puede recortar los primeros y últimos N metros de datos para proteger la ubicación de su domicilio o garaje.
 * **Borrado Seguro:** Al eliminar una sesión desde el historial de la aplicación, se limpian automáticamente todos los archivos asociados (vídeo MP4, paquete ZIP, GPX y CSV).
 * **Seguridad en Carretera:** Diseñado para utilizarse con soportes homologados en pista o circuito cerrado. Configura y calibra la aplicación antes de iniciar la marcha.
 
