@@ -10,6 +10,7 @@ private val DarkColorScheme = darkColorScheme(
     tertiary = NeonAmber,
     background = CockpitBlack,
     surface = CockpitDarkSurface,
+    surfaceTint = androidx.compose.ui.graphics.Color.Transparent,
     onPrimary = CockpitBlack,
     onSecondary = CockpitBlack,
     onTertiary = CockpitBlack,

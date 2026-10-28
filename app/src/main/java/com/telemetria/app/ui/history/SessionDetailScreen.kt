@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -41,6 +42,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -469,6 +471,7 @@ fun SessionDetailScreen(
         val current = session!!
         AlertDialog(
             onDismissRequest = { showExportDialog = false },
+            modifier = Modifier.border(1.dp, CockpitBorder, RoundedCornerShape(16.dp)),
             title = {
                 Text(
                     text = "Exportar Paquete ZIP",
@@ -477,7 +480,7 @@ fun SessionDetailScreen(
                 )
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Text(
                         text = "Se empaquetará el vídeo original sincronizado junto con la telemetría CSV, ruta GPX y metadatos JSON.",
                         color = TextSecondary,
@@ -488,9 +491,10 @@ fun SessionDetailScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(CockpitCardBg)
-                            .padding(10.dp),
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(CockpitDarkSurface)
+                            .border(1.dp, CockpitBorder, RoundedCornerShape(10.dp))
+                            .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
@@ -501,6 +505,7 @@ fun SessionDetailScreen(
                                 fontSize = 13.sp,
                                 color = TextPrimary
                             )
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "Recorta los primeros y últimos ${trimDistanceMeters.toInt()} m de datos",
                                 fontSize = 11.sp,
@@ -509,7 +514,14 @@ fun SessionDetailScreen(
                         }
                         Switch(
                             checked = trimPrivacyEnabled,
-                            onCheckedChange = { trimPrivacyEnabled = it }
+                            onCheckedChange = { trimPrivacyEnabled = it },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = CockpitBlack,
+                                checkedTrackColor = NeonCyan,
+                                uncheckedThumbColor = TextMuted,
+                                uncheckedTrackColor = CockpitCardBg,
+                                uncheckedBorderColor = CockpitBorder
+                            )
                         )
                     }
 
@@ -526,9 +538,11 @@ fun SessionDetailScreen(
                                         .weight(1f)
                                         .height(34.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (selected) NeonCyan else CockpitCardBg,
+                                        containerColor = if (selected) NeonCyan else CockpitDarkSurface,
                                         contentColor = if (selected) CockpitBlack else TextSecondary
                                     ),
+                                    border = BorderStroke(1.dp, if (selected) NeonCyan else CockpitBorder),
+                                    shape = RoundedCornerShape(8.dp),
                                     contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)
                                 ) {
                                     Text("${dist.toInt()}m", fontSize = 11.sp, fontWeight = FontWeight.Bold)
@@ -541,8 +555,8 @@ fun SessionDetailScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(NeonAmber.copy(alpha = 0.12f))
-                                .border(1.dp, NeonAmber.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                                .background(NeonAmber.copy(alpha = 0.10f))
+                                .border(1.dp, NeonAmber.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
                                 .padding(10.dp)
                         ) {
                             Text(
@@ -568,26 +582,37 @@ fun SessionDetailScreen(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = NeonGreen,
                         contentColor = CockpitBlack
-                    )
+                    ),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
+                    Icon(
+                        Icons.Default.FileDownload,
+                        contentDescription = null,
+                        tint = CockpitBlack,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text("EXPORTAR ZIP", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showExportDialog = false }) {
-                    Text("CANCELAR", color = TextSecondary)
+                    Text("CANCELAR", color = TextSecondary, fontWeight = FontWeight.SemiBold)
                 }
             },
-            containerColor = CockpitDarkSurface,
-            shape = RoundedCornerShape(14.dp)
+            containerColor = CockpitCardBg,
+            tonalElevation = 0.dp,
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
     if (postZipPromptSession != null) {
         val target = postZipPromptSession!!
         val rawSizeMb = viewModel.getRawVideoSizeMb(target)
+        val exportedZip = viewModel.getZipFileForSession(target)
         AlertDialog(
             onDismissRequest = { postZipPromptSession = null },
+            modifier = Modifier.border(1.dp, CockpitBorder, RoundedCornerShape(16.dp)),
             title = {
                 Text(
                     text = "¡Paquete ZIP exportado!",
@@ -598,7 +623,7 @@ fun SessionDetailScreen(
             text = {
                 Text(
                     text = "El vídeo y toda la telemetría se han empaquetado de forma segura en:\n\n" +
-                            "📁 Download/Telemetria/sesion_${target.id.take(8)}_bundle.zip\n\n" +
+                            "📁 Download/Telemetria/${exportedZip.name}\n\n" +
                             "¿Deseas borrar el archivo de vídeo original de la memoria interna (Movies/telemetria_videos) para liberar ${String.format(java.util.Locale.US, "%.1f MB", rawSizeMb)} manteniendo el archivo .zip?",
                     color = TextSecondary
                 )
@@ -618,8 +643,9 @@ fun SessionDetailScreen(
                     Text("CONSERVAR AMBOS", color = TextSecondary)
                 }
             },
-            containerColor = CockpitDarkSurface,
-            shape = RoundedCornerShape(12.dp)
+            containerColor = CockpitCardBg,
+            tonalElevation = 0.dp,
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -628,6 +654,7 @@ fun SessionDetailScreen(
         val rawSizeMb = viewModel.getRawVideoSizeMb(target)
         AlertDialog(
             onDismissRequest = { showManualDeleteVideoDialog = false },
+            modifier = Modifier.border(1.dp, CockpitBorder, RoundedCornerShape(16.dp)),
             title = {
                 Text(
                     text = "¿Borrar vídeo original?",
@@ -657,8 +684,9 @@ fun SessionDetailScreen(
                     Text("CANCELAR", color = TextSecondary)
                 }
             },
-            containerColor = CockpitDarkSurface,
-            shape = RoundedCornerShape(12.dp)
+            containerColor = CockpitCardBg,
+            tonalElevation = 0.dp,
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
@@ -666,6 +694,7 @@ fun SessionDetailScreen(
         val target = session!!
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
+            modifier = Modifier.border(1.dp, CockpitBorder, RoundedCornerShape(16.dp)),
             title = {
                 Text(
                     text = "¿Eliminar sesión?",
@@ -696,8 +725,9 @@ fun SessionDetailScreen(
                     Text("CANCELAR", color = TextSecondary)
                 }
             },
-            containerColor = CockpitDarkSurface,
-            shape = RoundedCornerShape(12.dp)
+            containerColor = CockpitCardBg,
+            tonalElevation = 0.dp,
+            shape = RoundedCornerShape(16.dp)
         )
     }
 

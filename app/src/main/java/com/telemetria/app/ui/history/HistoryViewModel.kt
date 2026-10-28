@@ -113,8 +113,7 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
             } else {
                 rawPoints
             }
-            val exportDir = getExportDirectory()
-            val zipFile = File(exportDir, "sesion_${session.id.take(8)}_bundle.zip")
+            val zipFile = getZipFileForSession(session)
             val tempDir = File(getApplication<Application>().cacheDir, "zip_temp_${session.id.take(8)}")
             
             val vehicleConfig = com.telemetria.app.core.preferences.VehiclePreferences.getInstance(getApplication()).vehicleConfig.value
@@ -147,9 +146,23 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    /**
+     * Genera un nombre de archivo descriptivo y seguro para el paquete ZIP,
+     * incorporando la fecha y hora de la ruta (YYYY-MM-DD_HH-mm) y el ID corto.
+     * Sanitiza caracteres prohibidos en sistemas de archivos de Windows (\ / : * ? " < > |).
+     */
+    fun getSafeZipFilename(session: SessionEntity): String {
+        return com.telemetria.app.core.util.FormatUtils.formatZipFilename(session.startTimeMillis, session.id)
+    }
+
     fun getZipFileForSession(session: SessionEntity): File {
         val exportDir = getExportDirectory()
-        return File(exportDir, "sesion_${session.id.take(8)}_bundle.zip")
+        val shortId = session.id.take(8)
+        // Soporte retrocompatible: si ya existe un zip para esta sesión (nuevo formato o formato antiguo sesion_xxxx_bundle.zip), devolverlo
+        val existing = exportDir.listFiles()?.firstOrNull { file ->
+            file.isFile && file.extension.equals("zip", ignoreCase = true) && file.name.contains(shortId)
+        }
+        return existing ?: File(exportDir, getSafeZipFilename(session))
     }
 
     fun isZipExported(session: SessionEntity): Boolean {

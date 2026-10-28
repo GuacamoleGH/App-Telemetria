@@ -40,5 +40,22 @@ object FormatUtils {
     fun formatIsoUtc(timestampMillis: Long): String {
         return isoFormat.format(Date(timestampMillis))
     }
+
+    /**
+     * Genera un nombre de archivo descriptivo y seguro para el paquete ZIP,
+     * incorporando la fecha y hora de la ruta (YYYY-MM-DD_HH-mm) y el ID corto de la sesión.
+     * Sanitiza y sustituye de forma estricta cualquier carácter prohibido en Windows (\ / : * ? " < > |).
+     */
+    fun formatZipFilename(startTimeMillis: Long, sessionId: String): String {
+        val dateFormatted = try {
+            val sdf = SimpleDateFormat("yyyy-MM-dd_HH-mm", Locale.US)
+            sdf.format(Date(startTimeMillis))
+        } catch (_: Exception) {
+            "sesion"
+        }
+        val safeDate = dateFormatted.replace(Regex("""[\\/:*?"<>|\s]"""), "-")
+        val shortId = sessionId.take(8)
+        return "Tachyon_${safeDate}_${shortId}.zip"
+    }
 }
 

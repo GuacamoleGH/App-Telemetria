@@ -78,6 +78,7 @@ fun HistoryScreen(
         val target = sessionToDelete!!
         AlertDialog(
             onDismissRequest = { sessionToDelete = null },
+            modifier = Modifier.border(1.dp, CockpitBorder, RoundedCornerShape(16.dp)),
             title = {
                 Text(
                     text = "¿Eliminar sesión?",
@@ -106,8 +107,9 @@ fun HistoryScreen(
                     Text("CANCELAR", color = TextSecondary)
                 }
             },
-            containerColor = CockpitDarkSurface,
-            shape = RoundedCornerShape(12.dp)
+            containerColor = CockpitCardBg,
+            tonalElevation = 0.dp,
+            shape = RoundedCornerShape(16.dp)
         )
     }
 
